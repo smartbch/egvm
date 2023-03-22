@@ -1,1 +1,2 @@
-# pureauth
+**Elfinguard pure-function authorizer**
+

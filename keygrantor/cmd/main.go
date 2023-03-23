@@ -33,15 +33,15 @@ func main() {
 	ExtPubKey = ExtPrivKey.PublicKey()
 	newKey := keygrantor.NewKeyFromRootKey(ExtPrivKey)
 	PrivKey = keygrantor.Bip32KeyToEciesKey(newKey)
-	getKey()
+	fetchXprv()
 	listenAddrP := flag.String("listen", "0.0.0.0:8082", "listen address")
 	listenAddr := *listenAddrP
 	go createAndStartHttpServer(listenAddr)
 	select {}
 }
 
-func getKey() {
-	keySrc := flag.String("keysrc", "", "the server from which we can sync xprv key")
+func fetchXprv() {
+	keySrc := flag.String("xprvsrc", "", "the server from which we can sync xprv key")
 	if keySrc == nil || len(*keySrc) == 0 {
 		keygrantor.SealKeyToFile(KeyFile, ExtPrivKey)
 		return
@@ -51,7 +51,7 @@ func getKey() {
 		fmt.Println("failed to get report attestation report")
 		panic(err)
 	}
-	url := *keySrc+"/getkey?report="+hex.EncodeToString(reportBz)
+	url := *keySrc+"/xprv?report="+hex.EncodeToString(reportBz)
 	encryptedKeyBz := httpGet(url)
 	keyBz, err := ecies.Decrypt(PrivKey, encryptedKeyBz)
 	if err != nil {
@@ -101,7 +101,8 @@ func createAndStartHttpServer(listenAddr string) {
 		w.Write([]byte(hex.EncodeToString(report)))
 	})
 
-	http.HandleFunc("/getkey", func(w http.ResponseWriter, r *http.Request) {
+	// For peer keygrantors to get ExtPrivKey
+	http.HandleFunc("/xprv", func(w http.ResponseWriter, r *http.Request) {
 		reportHex := r.URL.Query()["report"]
 		if len(reportHex) == 0 || len(reportHex[0]) == 0 {
 			w.WriteHeader(http.StatusBadRequest)
@@ -117,7 +118,37 @@ func createAndStartHttpServer(listenAddr string) {
 		report, err := keygrantor.VerifyPeerReport(reportBz, SelfReport)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte("report check failed"))
+			w.Write([]byte("report check failed: "+err.Error()))
+			return
+		}
+		peerPubKey, err := ecies.NewPublicKeyFromBytes(report.Data) // requestor embeds its pubkey here
+		bz, err := ecies.Encrypt(peerPubKey, []byte(ExtPrivKey.B58Serialize()))
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("failed to encrypted xprv"))
+			return
+		}
+		w.Write([]byte(hex.EncodeToString(bz)))
+	})
+
+	// For requestors to get derived key
+	http.HandleFunc("/getkey", func(w http.ResponseWriter, r *http.Request) {
+		reportHex := r.URL.Query()["report"]
+		if len(reportHex) == 0 || len(reportHex[0]) == 0 {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("miss report paramater"))
+			return
+		}
+		reportBz, err := hex.DecodeString(reportHex[0])
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("report decode error"))
+			return
+		}
+		report, err := enclave.VerifyRemoteReport(reportBz)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("report check failed: "+err.Error()))
 			return
 		}
 		peerPubKey, err := ecies.NewPublicKeyFromBytes(report.Data) // requestor embeds its pubkey here

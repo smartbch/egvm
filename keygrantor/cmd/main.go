@@ -3,8 +3,8 @@ package main
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"fmt"
 	"flag"
+	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -27,20 +27,24 @@ var (
 )
 
 func main() {
+	keySrc := flag.String("xprvsrc", "", "the server from which we can sync xprv key")
+	listenAddrP := flag.String("listen", "0.0.0.0:8084", "listen address")
+	flag.Parse()
+	var err error
+	ExtPrivKey, ExtPubKey, PrivKey, err = keygrantor.RecoverKeysFromFile(KeyFile)
+	if err != nil {
+		ExtPrivKey = keygrantor.GetRandomExtPrivKey()
+		ExtPubKey = ExtPrivKey.PublicKey()
+		PrivKey = keygrantor.Bip32KeyToEciesKey(keygrantor.NewKeyFromRootKey(ExtPrivKey))
+		fetchXprv(keySrc)
+	}
 	SelfReport = keygrantor.GetSelfReportAndCheck()
-	ExtPrivKey = keygrantor.GetRandomExtPrivKey()
-	ExtPubKey = ExtPrivKey.PublicKey()
-	newKey := keygrantor.NewKeyFromRootKey(ExtPrivKey)
-	PrivKey = keygrantor.Bip32KeyToEciesKey(newKey)
-	fetchXprv()
-	listenAddrP := flag.String("listen", "0.0.0.0:8082", "listen address")
 	listenAddr := *listenAddrP
 	go createAndStartHttpServer(listenAddr)
 	select {}
 }
 
-func fetchXprv() {
-	keySrc := flag.String("xprvsrc", "", "the server from which we can sync xprv key")
+func fetchXprv(keySrc *string) {
 	if keySrc == nil || len(*keySrc) == 0 {
 		keygrantor.SealKeyToFile(KeyFile, ExtPrivKey)
 		return
@@ -50,7 +54,7 @@ func fetchXprv() {
 		fmt.Println("failed to get report attestation report")
 		panic(err)
 	}
-	url := *keySrc+"/xprv?report="+hex.EncodeToString(reportBz)
+	url := *keySrc + "/xprv?report=" + hex.EncodeToString(reportBz)
 	encryptedKeyBz := keygrantor.HttpGet(url)
 	keyBz, err := ecies.Decrypt(PrivKey, encryptedKeyBz)
 	if err != nil {
@@ -63,7 +67,7 @@ func fetchXprv() {
 		panic(err)
 	}
 	ExtPubKey = ExtPrivKey.PublicKey()
-	ExtPrivKey = keygrantor.GetRandomExtPrivKey()
+	//ExtPrivKey = keygrantor.GetRandomExtPrivKey()
 	keygrantor.SealKeyToFile(KeyFile, ExtPrivKey)
 }
 
@@ -100,7 +104,7 @@ func createAndStartHttpServer(listenAddr string) {
 		report, err := keygrantor.VerifyPeerReport(reportBz, SelfReport)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte("report check failed: "+err.Error()))
+			w.Write([]byte("report check failed: " + err.Error()))
 			return
 		}
 		peerPubKey, err := ecies.NewPublicKeyFromBytes(report.Data) // requestor embeds its pubkey here
@@ -130,7 +134,7 @@ func createAndStartHttpServer(listenAddr string) {
 		report, err := enclave.VerifyRemoteReport(reportBz)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte("report check failed: "+err.Error()))
+			w.Write([]byte("report check failed: " + err.Error()))
 			return
 		}
 		peerPubKey, err := ecies.NewPublicKeyFromBytes(report.Data) // requestor embeds its pubkey here

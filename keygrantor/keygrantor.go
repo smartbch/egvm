@@ -12,10 +12,10 @@ import (
 	"time"
 
 	ecies "github.com/ecies/go/v2"
-	"github.com/edgelesssys/ego/ecrypto"
-	"github.com/edgelesssys/ego/enclave"
 	"github.com/edgelesssys/ego/attestation"
 	"github.com/edgelesssys/ego/attestation/tcbstatus"
+	"github.com/edgelesssys/ego/ecrypto"
+	"github.com/edgelesssys/ego/enclave"
 	"github.com/tyler-smith/go-bip32"
 )
 
@@ -59,10 +59,10 @@ func Bip32KeyToEciesKey(key *bip32.Key) *ecies.PrivateKey {
 }
 
 func DeriveKey(key *bip32.Key, hash [32]byte) *bip32.Key {
-	twoExp31 := big.NewInt(1<<31)
+	twoExp31 := big.NewInt(1 << 31)
 	n := big.NewInt(0).SetBytes(hash[:])
 	lastAdd := uint32(0)
-	lastAddUnit := uint32(1<<8)
+	lastAddUnit := uint32(1 << 8)
 	for i := 0; i < 9; i++ {
 		remainder := big.NewInt(0)
 		n.DivMod(n, twoExp31, remainder)
@@ -80,17 +80,17 @@ func DeriveKey(key *bip32.Key, hash [32]byte) *bip32.Key {
 				lastAdd += lastAddUnit
 			}
 		}
-		lastAddUnit <<= 3;
+		lastAddUnit <<= 3
 	}
 	return key
 }
 
 func NewKeyFromRootKey(rootKey *bip32.Key) *bip32.Key {
-	child, err := rootKey.NewChildKey(0x80000000+44) // BIP44
+	child, err := rootKey.NewChildKey(0x80000000 + 44) // BIP44
 	if err != nil {
 		panic(err)
 	}
-	child, err = child.NewChildKey(0x80000000)//Bitcoin
+	child, err = child.NewChildKey(0x80000000) //Bitcoin
 	if err != nil {
 		panic(err)
 	}
@@ -109,7 +109,6 @@ func NewKeyFromRootKey(rootKey *bip32.Key) *bip32.Key {
 	return child
 }
 
-	
 func SealKeyToFile(fname string, extPrivKey *bip32.Key) {
 	bz, err := extPrivKey.Serialize()
 	if err != nil {
@@ -125,10 +124,13 @@ func SealKeyToFile(fname string, extPrivKey *bip32.Key) {
 	}
 }
 
-func RecoverKeysFromFile(fname string) (extPrivKey *bip32.Key, extPubKey *bip32.Key, privKey *ecies.PrivateKey) {
+func RecoverKeysFromFile(fname string) (extPrivKey *bip32.Key, extPubKey *bip32.Key, privKey *ecies.PrivateKey, err error) {
 	fileData, err := os.ReadFile(fname)
 	if err != nil {
-		fmt.Printf("Failed to read the file: %s\n", fname)
+		fmt.Printf("read file failed, %s\n", err.Error())
+		if os.IsNotExist(err) {
+			return nil, nil, nil, err
+		}
 		panic(err)
 	}
 	rawData, err := ecrypto.Unseal(fileData, nil)
@@ -142,8 +144,7 @@ func RecoverKeysFromFile(fname string) (extPrivKey *bip32.Key, extPubKey *bip32.
 		panic(err)
 	}
 	extPubKey = extPrivKey.PublicKey()
-	newKey := NewKeyFromRootKey(extPrivKey)
-	privKey = Bip32KeyToEciesKey(newKey)
+	privKey = Bip32KeyToEciesKey(NewKeyFromRootKey(extPrivKey))
 	return
 }
 

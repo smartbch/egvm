@@ -15,9 +15,7 @@ cmd/cmd
 # Dependency directories (remove the comment below to include it)
 # vendor/
 *.swp
-<<<<<<< HEAD
+
 keygrantor/cmd/cmd
-=======
 
 .idea
->>>>>>> 506cf10 (Fix something)

@@ -2,8 +2,8 @@ package keygrantor
 
 import (
 	"bytes"
-	"errors"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"math/big"
@@ -39,6 +39,17 @@ func generateRandom64Bytes() []byte {
 	var x C.uint16_t
 	var retry C.int = 1
 	for i := 0; i < 64; i++ {
+		C.rdrand_16(&x, retry)
+		out = append(out, byte(x))
+	}
+	return out
+}
+
+func generateRandom32Bytes() []byte {
+	var out []byte
+	var x C.uint16_t
+	var retry C.int = 1
+	for i := 0; i < 32; i++ {
 		C.rdrand_16(&x, retry)
 		out = append(out, byte(x))
 	}
@@ -203,7 +214,7 @@ func HttpGet(url string) []byte {
 }
 
 func GetKeyFromKeyGrantor(keyGrantorUrl string) *bip32.Key {
-	privKey := ecies.NewPrivateKeyFromBytes(generateRandom64Bytes())
+	privKey := ecies.NewPrivateKeyFromBytes(generateRandom32Bytes())
 	pubkey := privKey.PublicKey.Bytes(true)
 	report, err := enclave.GetRemoteReport(pubkey)
 	if err != nil {
@@ -215,7 +226,11 @@ func GetKeyFromKeyGrantor(keyGrantorUrl string) *bip32.Key {
 	if res == nil {
 		panic("get key from keygrantor failed")
 	}
-	keyBz, err := ecies.Decrypt(privKey, res)
+	resBz, err := hex.DecodeString(string(res))
+	if err != nil {
+		panic(err)
+	}
+	keyBz, err := ecies.Decrypt(privKey, resBz)
 	if err != nil {
 		fmt.Println("failed to decrypt message from server")
 		panic(err)

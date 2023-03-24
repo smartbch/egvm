@@ -107,8 +107,19 @@ func createAndStartHttpServer(listenAddr string) {
 			w.Write([]byte("report check failed: " + err.Error()))
 			return
 		}
-		peerPubKey, err := ecies.NewPublicKeyFromBytes(report.Data) // requestor embeds its pubkey here
-		bz, err := ecies.Encrypt(peerPubKey, []byte(ExtPrivKey.B58Serialize()))
+		if len(report.Data) != 64 {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("report data must 64bytes long"))
+			return
+		}
+		peerPubKey, err := ecies.NewPublicKeyFromBytes(report.Data[:33]) // requestor embeds its pubkey here
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("report data must be pubkey: " + err.Error()))
+			return
+		}
+		derivedKeyBz, _ := ExtPrivKey.Serialize()
+		bz, err := ecies.Encrypt(peerPubKey, derivedKeyBz)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte("failed to encrypted xprv"))
@@ -137,14 +148,26 @@ func createAndStartHttpServer(listenAddr string) {
 			w.Write([]byte("report check failed: " + err.Error()))
 			return
 		}
-		peerPubKey, err := ecies.NewPublicKeyFromBytes(report.Data) // requestor embeds its pubkey here
+		if len(report.Data) != 64 {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("report data must 64bytes long"))
+			return
+		}
+		fmt.Printf("report pubkey: %s\n", hex.EncodeToString(report.Data[:33]))
+		requestorPubKey, err := ecies.NewPublicKeyFromBytes(report.Data[:33]) // requestor embeds its pubkey here
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("report data must be pubkey: " + err.Error()))
+			return
+		}
 		var hash [32]byte
 		copy(hash[:], report.UniqueID)
 		derivedKey := keygrantor.DeriveKey(ExtPrivKey, hash)
-		bz, err := ecies.Encrypt(peerPubKey, []byte(derivedKey.B58Serialize()))
+		derivedKeyBz, _ := derivedKey.Serialize()
+		bz, err := ecies.Encrypt(requestorPubKey, derivedKeyBz)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte("failed to encrypted xprv"))
+			w.Write([]byte("failed to encrypted derivedKey for requestor"))
 			return
 		}
 		w.Write([]byte(hex.EncodeToString(bz)))

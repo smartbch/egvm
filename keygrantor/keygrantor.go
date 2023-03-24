@@ -3,9 +3,13 @@ package keygrantor
 import (
 	"bytes"
 	"errors"
+	"encoding/hex"
 	"fmt"
+	"io/ioutil"
 	"math/big"
+	"net/http"
 	"os"
+	"time"
 
 	ecies "github.com/ecies/go/v2"
 	"github.com/edgelesssys/ego/ecrypto"
@@ -178,4 +182,47 @@ func VerifyPeerReport(reportBytes []byte, selfReport attestation.Report) (attest
 		return report, ErrProductIDMismatch
 	}
 	return report, nil
+}
+
+func HttpGet(url string) []byte {
+	client := http.Client{Timeout: 3 * time.Second}
+	resp, err := client.Get(url)
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		panic(fmt.Sprintf("failed to get key, http status: %d", resp.Status))
+	}
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		panic(err)
+	}
+	return body
+}
+
+func GetKeyFromKeyGrantor(keyGrantorUrl string) *bip32.Key {
+	privKey := ecies.NewPrivateKeyFromBytes(generateRandom64Bytes())
+	pubkey := privKey.PublicKey.Bytes(true)
+	report, err := enclave.GetRemoteReport(pubkey)
+	if err != nil {
+		panic(err)
+	}
+	// todo: support https
+	url := fmt.Sprintf("http://%s/getkey?report=%s", keyGrantorUrl, hex.EncodeToString(report))
+	res := HttpGet(url)
+	if res == nil {
+		panic("get key from keygrantor failed")
+	}
+	keyBz, err := ecies.Decrypt(privKey, res)
+	if err != nil {
+		fmt.Println("failed to decrypt message from server")
+		panic(err)
+	}
+	outKey, err := bip32.Deserialize(keyBz)
+	if err != nil {
+		fmt.Println("failed to deserialize the key from server")
+		panic(err)
+	}
+	return outKey
 }

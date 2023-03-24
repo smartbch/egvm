@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"flag"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"time"
@@ -52,7 +51,7 @@ func fetchXprv() {
 		panic(err)
 	}
 	url := *keySrc+"/xprv?report="+hex.EncodeToString(reportBz)
-	encryptedKeyBz := httpGet(url)
+	encryptedKeyBz := keygrantor.HttpGet(url)
 	keyBz, err := ecies.Decrypt(PrivKey, encryptedKeyBz)
 	if err != nil {
 		fmt.Println("failed to decrypt message from server")
@@ -66,23 +65,6 @@ func fetchXprv() {
 	ExtPubKey = ExtPrivKey.PublicKey()
 	ExtPrivKey = keygrantor.GetRandomExtPrivKey()
 	keygrantor.SealKeyToFile(KeyFile, ExtPrivKey)
-}
-
-func httpGet(url string) []byte {
-	client := http.Client{Timeout: 3 * time.Second}
-	resp, err := client.Get(url)
-	if err != nil {
-		panic(err)
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		panic(fmt.Sprintf("failed to get key, http status: %d", resp.Status))
-	}
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		panic(err)
-	}
-	return body
 }
 
 func createAndStartHttpServer(listenAddr string) {

@@ -216,7 +216,7 @@ func HttpGet(url string) ([]byte, error) {
 		return nil, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("failed to get key, http status: %s", resp.Status)
+		return nil, fmt.Errorf("failed to get key, http status:%s, content:%s", resp.Status, string(body))
 	}
 	return body, nil
 }

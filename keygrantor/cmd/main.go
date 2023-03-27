@@ -60,11 +60,15 @@ func fetchXprv(keySrc *string) {
 		panic(err)
 	}
 	url := fmt.Sprintf("%s/xprv?report=%s&token=%s", *keySrc, hex.EncodeToString(reportBz), token)
-	encryptedKeyBz, err := keygrantor.HttpGet(url)
+	encryptedKey, err := keygrantor.HttpGet(url)
 	if err != nil {
 		panic(err)
 	}
-	keyBz, err := ecies.Decrypt(PrivKey, encryptedKeyBz)
+	resBz, err := hex.DecodeString(string(encryptedKey))
+	if err != nil {
+		panic(err)
+	}
+	keyBz, err := ecies.Decrypt(PrivKey, resBz)
 	if err != nil {
 		fmt.Println("failed to decrypt message from server")
 		panic(err)
@@ -75,7 +79,6 @@ func fetchXprv(keySrc *string) {
 		panic(err)
 	}
 	ExtPubKey = ExtPrivKey.PublicKey()
-	//ExtPrivKey = keygrantor.GetRandomExtPrivKey()
 	keygrantor.SealKeyToFile(KeyFile, ExtPrivKey)
 }
 

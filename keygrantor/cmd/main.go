@@ -59,7 +59,7 @@ func fetchXprv(keySrc *string) {
 	if err != nil {
 		panic(err)
 	}
-	url := fmt.Sprintf("%s/xprv?report=%stoken=%s", *keySrc, hex.EncodeToString(reportBz), token)
+	url := fmt.Sprintf("%s/xprv?report=%s&token=%s", *keySrc, hex.EncodeToString(reportBz), token)
 	encryptedKeyBz := keygrantor.HttpGet(url)
 	keyBz, err := ecies.Decrypt(PrivKey, encryptedKeyBz)
 	if err != nil {

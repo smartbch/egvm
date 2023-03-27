@@ -228,8 +228,12 @@ func GetKeyFromKeyGrantor(keyGrantorUrl string) *bip32.Key {
 	if err != nil {
 		panic(err)
 	}
+	token, err := enclave.CreateAzureAttestationToken(pubkey, AttestationProviderURL)
+	if err != nil {
+		panic(err)
+	}
 	// todo: support https
-	url := fmt.Sprintf("http://%s/getkey?report=%s", keyGrantorUrl, hex.EncodeToString(report))
+	url := fmt.Sprintf("http://%s/getkey?report=%s&token=%s", keyGrantorUrl, hex.EncodeToString(report), token)
 	res := HttpGet(url)
 	if res == nil {
 		panic("get key from keygrantor failed")

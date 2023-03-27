@@ -5,7 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"math/big"
 	"net/http"
 	"os"
@@ -204,21 +204,21 @@ func VerifyPeerReport(reportBytes []byte, selfReport attestation.Report) (attest
 	return report, nil
 }
 
-func HttpGet(url string) []byte {
+func HttpGet(url string) ([]byte, error) {
 	client := http.Client{Timeout: 3 * time.Second}
 	resp, err := client.Get(url)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		panic(fmt.Sprintf("failed to get key, http status: %s", string(body)))
+		return nil, fmt.Errorf("failed to get key, http status: %s", resp.Status)
 	}
-	return body
+	return body, nil
 }
 
 func GetKeyFromKeyGrantor(keyGrantorUrl string) *bip32.Key {
@@ -234,7 +234,10 @@ func GetKeyFromKeyGrantor(keyGrantorUrl string) *bip32.Key {
 	}
 	// todo: support https
 	url := fmt.Sprintf("http://%s/getkey?report=%s&token=%s", keyGrantorUrl, hex.EncodeToString(report), token)
-	res := HttpGet(url)
+	res, err := HttpGet(url)
+	if err != nil {
+		panic(err)
+	}
 	if res == nil {
 		panic("get key from keygrantor failed")
 	}

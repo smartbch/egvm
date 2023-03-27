@@ -167,7 +167,15 @@ func GetSelfReportAndCheck() attestation.Report {
 	if report.Debug {
 		panic(ErrInDebugMode)
 	}
-	if report.TCBStatus != tcbstatus.UpToDate {
+	r, err := enclave.GetRemoteReport([]byte{0x01})
+	if err != nil {
+		panic(err)
+	}
+	ar, err := enclave.VerifyRemoteReport(r)
+	if err != nil {
+		panic(err)
+	}
+	if ar.TCBStatus != tcbstatus.UpToDate {
 		panic(ErrTCBStatus)
 	}
 	return report

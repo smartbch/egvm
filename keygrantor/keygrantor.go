@@ -250,3 +250,26 @@ func GetKeyFromKeyGrantor(keyGrantorUrl string) *bip32.Key {
 	}
 	return outKey
 }
+
+const AttestationProviderURL = "https://shareduks.uks.attest.azure.net"
+
+func VerifyJWT(token string, report attestation.Report) error {
+	tokenReport, err := attestation.VerifyAzureAttestationToken(token, AttestationProviderURL)
+	if err != nil {
+		return err
+	}
+	return checkJWTAgainstReport(tokenReport, report)
+}
+
+func checkJWTAgainstReport(token attestation.Report, report attestation.Report) error {
+	if !bytes.Equal(token.UniqueID, report.UniqueID) {
+		return ErrUniqueIDMismatch
+	}
+	if !bytes.Equal(token.SignerID, report.SignerID) {
+		return ErrSignerIDMismatch
+	}
+	if !bytes.Equal(token.ProductID, report.ProductID) {
+		return ErrProductIDMismatch
+	}
+	return nil
+}

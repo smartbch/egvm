@@ -49,12 +49,17 @@ func fetchXprv(keySrc *string) {
 		keygrantor.SealKeyToFile(KeyFile, ExtPrivKey)
 		return
 	}
-	reportBz, err := enclave.GetRemoteReport(PrivKey.PublicKey.Bytes(true))
+	data := PrivKey.PublicKey.Bytes(true)
+	reportBz, err := enclave.GetRemoteReport(data)
 	if err != nil {
 		fmt.Println("failed to get report attestation report")
 		panic(err)
 	}
-	url := *keySrc + "/xprv?report=" + hex.EncodeToString(reportBz)
+	token, err := enclave.CreateAzureAttestationToken(data, keygrantor.AttestationProviderURL)
+	if err != nil {
+		panic(err)
+	}
+	url := fmt.Sprintf("%s/xprv?report=%stoken=%s", *keySrc, hex.EncodeToString(reportBz), token)
 	encryptedKeyBz := keygrantor.HttpGet(url)
 	keyBz, err := ecies.Decrypt(PrivKey, encryptedKeyBz)
 	if err != nil {
@@ -118,6 +123,18 @@ func createAndStartHttpServer(listenAddr string) {
 			w.Write([]byte("report data must be pubkey: " + err.Error()))
 			return
 		}
+		tokens := r.URL.Query()["token"]
+		if len(tokens) == 0 || len(tokens[0]) == 0 {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("miss jwt token parameter"))
+			return
+		}
+		err = keygrantor.VerifyJWT(tokens[0], report)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("jwt token verify failed: " + err.Error()))
+			return
+		}
 		derivedKeyBz, _ := ExtPrivKey.Serialize()
 		bz, err := ecies.Encrypt(peerPubKey, derivedKeyBz)
 		if err != nil {
@@ -130,10 +147,11 @@ func createAndStartHttpServer(listenAddr string) {
 
 	// For requestors to get derived key
 	http.HandleFunc("/getkey", func(w http.ResponseWriter, r *http.Request) {
+		// do verify
 		reportHex := r.URL.Query()["report"]
 		if len(reportHex) == 0 || len(reportHex[0]) == 0 {
 			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte("miss report paramater"))
+			w.Write([]byte("miss report parameter"))
 			return
 		}
 		reportBz, err := hex.DecodeString(reportHex[0])
@@ -160,6 +178,19 @@ func createAndStartHttpServer(listenAddr string) {
 			w.Write([]byte("report data must be pubkey: " + err.Error()))
 			return
 		}
+		tokens := r.URL.Query()["token"]
+		if len(tokens) == 0 || len(tokens[0]) == 0 {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("miss jwt token parameter"))
+			return
+		}
+		err = keygrantor.VerifyJWT(tokens[0], report)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("jwt token verify failed: " + err.Error()))
+			return
+		}
+		// do key derive
 		var hash [32]byte
 		copy(hash[:], report.UniqueID)
 		derivedKey := keygrantor.DeriveKey(ExtPrivKey, hash)

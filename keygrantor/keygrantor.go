@@ -211,12 +211,12 @@ func HttpGet(url string) []byte {
 		panic(err)
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		panic(fmt.Sprintf("failed to get key, http status: %d", resp.Status))
-	}
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		panic(err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		panic(fmt.Sprintf("failed to get key, http status: %s", string(body)))
 	}
 	return body
 }

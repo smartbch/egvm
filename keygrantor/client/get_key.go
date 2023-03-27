@@ -24,7 +24,7 @@ func GetKey(keyGrantorRpc string) (*bip32.Key, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get azure attestation token: %w", err)
 	}
-	url := fmt.Sprintf("%s/getkey?report=%stoken=%s", keyGrantorRpc,
+	url := fmt.Sprintf("%s/getkey?report=%s&token=%s", keyGrantorRpc,
 		hex.EncodeToString(reportBz), jwtToken)
 	encryptKeyBz, err := keygrantor.HttpGet(url)
 	if err != nil {

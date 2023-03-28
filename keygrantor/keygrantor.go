@@ -221,41 +221,39 @@ func HttpGet(url string) ([]byte, error) {
 	return body, nil
 }
 
-func GetKeyFromKeyGrantor(keyGrantorUrl string) *bip32.Key {
+func GetKeyFromKeyGrantor(keyGrantorUrl string) (*bip32.Key, error) {
 	privKey := ecies.NewPrivateKeyFromBytes(generateRandom32Bytes())
 	pubkey := privKey.PublicKey.Bytes(true)
 	report, err := enclave.GetRemoteReport(pubkey)
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("failed to get remote report: %w", err)
 	}
 	token, err := enclave.CreateAzureAttestationToken(pubkey, AttestationProviderURL)
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("failed to create attestation report: %w", err)
 	}
 	// todo: support https
 	url := fmt.Sprintf("http://%s/getkey?report=%s&token=%s", keyGrantorUrl, hex.EncodeToString(report), token)
 	res, err := HttpGet(url)
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("failed to get key: %w", err)
 	}
 	if res == nil {
-		panic("get key from keygrantor failed")
+		return nil, fmt.Errorf("failed to get key: no resust data")
 	}
 	resBz, err := hex.DecodeString(string(res))
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("failed to decode key: %w", err)
 	}
 	keyBz, err := ecies.Decrypt(privKey, resBz)
 	if err != nil {
-		fmt.Println("failed to decrypt message from server")
-		panic(err)
+		return nil, fmt.Errorf("failed to decrypt message from server: %w", err)
 	}
 	outKey, err := bip32.Deserialize(keyBz)
 	if err != nil {
-		fmt.Println("failed to deserialize the key from server")
-		panic(err)
+		return nil, fmt.Errorf("failed to deserialize the key from server: %w", err)
 	}
-	return outKey
+	return outKey, nil
 }
 
 const AttestationProviderURL = "https://shareduks.uks.attest.azure.net"

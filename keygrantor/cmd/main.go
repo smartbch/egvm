@@ -1,10 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"time"
@@ -50,7 +53,8 @@ func fetchXprv(keySrc *string) {
 		return
 	}
 	data := PrivKey.PublicKey.Bytes(true)
-	reportBz, err := enclave.GetRemoteReport(data)
+	hash := sha256.Sum256(data)
+	reportBz, err := enclave.GetRemoteReport(hash[:])
 	if err != nil {
 		fmt.Println("failed to get report attestation report")
 		panic(err)
@@ -59,8 +63,16 @@ func fetchXprv(keySrc *string) {
 	if err != nil {
 		panic(err)
 	}
-	url := fmt.Sprintf("%s/xprv?report=%s&token=%s", *keySrc, hex.EncodeToString(reportBz), token)
-	encryptedKey, err := keygrantor.HttpGet(url)
+	url := fmt.Sprintf("%s/xprv?pubkey=%s", *keySrc, hex.EncodeToString(data))
+	params := keygrantor.GetKeyParams{
+		Report: hex.EncodeToString(reportBz),
+		JWT:    token,
+	}
+	jsonReq, err := json.Marshal(params)
+	if err != nil {
+		panic(err)
+	}
+	encryptedKey, err := keygrantor.HttpPost(url, jsonReq)
 	if err != nil {
 		panic(err)
 	}
@@ -100,49 +112,22 @@ func createAndStartHttpServer(listenAddr string) {
 
 	// For peer keygrantors to get ExtPrivKey
 	http.HandleFunc("/xprv", func(w http.ResponseWriter, r *http.Request) {
-		reportHex := r.URL.Query()["report"]
-		if len(reportHex) == 0 || len(reportHex[0]) == 0 {
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte("miss report paramater"))
+		pubKey, pubkeyBz := handleRequesterPubkey(w, r)
+		if pubKey == nil {
 			return
 		}
-		reportBz, err := hex.DecodeString(reportHex[0])
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte("report decode error"))
+		report := handleGetKeyParam(w, r, pubkeyBz)
+		if report == nil {
 			return
 		}
-		report, err := keygrantor.VerifyPeerReport(reportBz, SelfReport)
+		err := keygrantor.VerifyPeerReport(report, &SelfReport)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			w.Write([]byte("report check failed: " + err.Error()))
 			return
 		}
-		if len(report.Data) != 64 {
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte("report data must 64bytes long"))
-			return
-		}
-		peerPubKey, err := ecies.NewPublicKeyFromBytes(report.Data[:33]) // requestor embeds its pubkey here
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte("report data must be pubkey: " + err.Error()))
-			return
-		}
-		tokens := r.URL.Query()["token"]
-		if len(tokens) == 0 || len(tokens[0]) == 0 {
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte("miss jwt token parameter"))
-			return
-		}
-		err = keygrantor.VerifyJWT(tokens[0], report)
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte("jwt token verify failed: " + err.Error()))
-			return
-		}
 		derivedKeyBz, _ := ExtPrivKey.Serialize()
-		bz, err := ecies.Encrypt(peerPubKey, derivedKeyBz)
+		bz, err := ecies.Encrypt(pubKey, derivedKeyBz)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte("failed to encrypted xprv"))
@@ -153,64 +138,100 @@ func createAndStartHttpServer(listenAddr string) {
 
 	// For requestors to get derived key
 	http.HandleFunc("/getkey", func(w http.ResponseWriter, r *http.Request) {
-		// do verify
-		reportHex := r.URL.Query()["report"]
-		if len(reportHex) == 0 || len(reportHex[0]) == 0 {
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte("miss report parameter"))
+		pubKey, pubkeyBz := handleRequesterPubkey(w, r)
+		if pubKey == nil {
 			return
 		}
-		reportBz, err := hex.DecodeString(reportHex[0])
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte("report decode error"))
+		report := handleGetKeyParam(w, r, pubkeyBz)
+		if report == nil {
 			return
 		}
-		report, err := enclave.VerifyRemoteReport(reportBz)
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte("report check failed: " + err.Error()))
-			return
-		}
-		if len(report.Data) != 64 {
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte("report data must 64bytes long"))
-			return
-		}
-		fmt.Printf("report pubkey: %s\n", hex.EncodeToString(report.Data[:33]))
-		requestorPubKey, err := ecies.NewPublicKeyFromBytes(report.Data[:33]) // requestor embeds its pubkey here
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte("report data must be pubkey: " + err.Error()))
-			return
-		}
-		tokens := r.URL.Query()["token"]
-		if len(tokens) == 0 || len(tokens[0]) == 0 {
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte("miss jwt token parameter"))
-			return
-		}
-		err = keygrantor.VerifyJWT(tokens[0], report)
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte("jwt token verify failed: " + err.Error()))
-			return
-		}
-		// do key derive
-		var hash [32]byte
-		copy(hash[:], report.UniqueID)
-		derivedKey := keygrantor.DeriveKey(ExtPrivKey, hash)
-		derivedKeyBz, _ := derivedKey.Serialize()
-		bz, err := ecies.Encrypt(requestorPubKey, derivedKeyBz)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte("failed to encrypted derivedKey for requestor"))
-			return
-		}
-		w.Write([]byte(hex.EncodeToString(bz)))
+		handleKeyDerive(w, report, pubKey)
 	})
 
 	server := http.Server{Addr: listenAddr, ReadTimeout: 3 * time.Second, WriteTimeout: 5 * time.Second}
 	fmt.Println("listening ...")
 	log.Fatal(server.ListenAndServe())
+}
+
+func handleRequesterPubkey(w http.ResponseWriter, r *http.Request) (*ecies.PublicKey, []byte) {
+	pubkeys := r.URL.Query()["pubkey"]
+	if len(pubkeys) == 0 || len(pubkeys[0]) == 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("miss jwt token parameter"))
+		return nil, nil
+	}
+	requesterPubkeyBz, err := hex.DecodeString(pubkeys[0])
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("pubkey hex string decode error"))
+		return nil, nil
+	}
+	requesterPubKey, err := ecies.NewPublicKeyFromBytes(requesterPubkeyBz) // requester embeds its pubkey here
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("pubkey decode err: " + err.Error()))
+		return nil, nil
+	}
+	return requesterPubKey, requesterPubkeyBz
+}
+
+func handleGetKeyParam(w http.ResponseWriter, r *http.Request, pubkeyBz []byte) *attestation.Report {
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("failed to read request body"))
+		return nil
+	}
+	var params keygrantor.GetKeyParams
+	err = json.Unmarshal(body, &params)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("failed to unmarshal request body"))
+		return nil
+	}
+	reportBz, err := hex.DecodeString(params.Report)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("report decode error"))
+		return nil
+	}
+	report, err := enclave.VerifyRemoteReport(reportBz)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("report check failed: " + err.Error()))
+		return nil
+	}
+	if len(report.Data) != 64 {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("report data must 64bytes long"))
+		return nil
+	}
+	pubkeyHash := sha256.Sum256(pubkeyBz)
+	if !bytes.Equal(pubkeyHash[:], report.Data[:32]) {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("pubkey not match the pubkey hash"))
+		return nil
+	}
+	fmt.Printf("report pubkey: %s\n", hex.EncodeToString(report.Data[:33]))
+	err = keygrantor.VerifyJWT(params.JWT, report)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("jwt token verify failed: " + err.Error()))
+		return nil
+	}
+	return &report
+}
+
+func handleKeyDerive(w http.ResponseWriter, report *attestation.Report, requesterPubKey *ecies.PublicKey) {
+	// concat uniqueid and client specific data, then hash it for more flexible key deriving
+	derivedKey := keygrantor.DeriveKey(ExtPrivKey, sha256.Sum256(append(report.UniqueID, report.Data[32:]...)))
+	derivedKeyBz, _ := derivedKey.Serialize()
+	bz, err := ecies.Encrypt(requesterPubKey, derivedKeyBz)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("failed to encrypted derivedKey"))
+		return
+	}
+	w.Write([]byte(hex.EncodeToString(bz)))
 }

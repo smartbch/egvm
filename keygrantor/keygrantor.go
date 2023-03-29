@@ -2,7 +2,9 @@ package keygrantor
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -33,6 +35,11 @@ var (
 	ErrSignerIDMismatch  = errors.New("SignerID Mismatch")
 	ErrProductIDMismatch = errors.New("ProductID Mismatch")
 )
+
+type GetKeyParams struct {
+	Report string `json:"Report"`
+	JWT    string `json:"JWT"`
+}
 
 func generateRandom64Bytes() []byte {
 	var out []byte
@@ -181,32 +188,28 @@ func GetSelfReportAndCheck() attestation.Report {
 	return report
 }
 
-func VerifyPeerReport(reportBytes []byte, selfReport attestation.Report) (attestation.Report, error) {
-	report, err := enclave.VerifyRemoteReport(reportBytes)
-	if err != nil {
-		return report, err
-	}
+func VerifyPeerReport(report *attestation.Report, selfReport *attestation.Report) error {
 	if report.Debug {
-		return report, ErrInDebugMode
+		return ErrInDebugMode
 	}
 	if report.TCBStatus != tcbstatus.UpToDate {
-		return report, ErrTCBStatus
+		return ErrTCBStatus
 	}
 	if !bytes.Equal(selfReport.UniqueID, report.UniqueID) {
-		return report, ErrUniqueIDMismatch
+		return ErrUniqueIDMismatch
 	}
 	if !bytes.Equal(selfReport.SignerID, report.SignerID) {
-		return report, ErrSignerIDMismatch
+		return ErrSignerIDMismatch
 	}
 	if !bytes.Equal(selfReport.ProductID, report.ProductID) {
-		return report, ErrProductIDMismatch
+		return ErrProductIDMismatch
 	}
-	return report, nil
+	return nil
 }
 
-func HttpGet(url string) ([]byte, error) {
+func HttpPost(url string, jsonReq []byte) ([]byte, error) {
 	client := http.Client{Timeout: 3 * time.Second}
-	resp, err := client.Get(url)
+	resp, err := client.Post(url, "application/json", bytes.NewReader(jsonReq))
 	if err != nil {
 		return nil, err
 	}
@@ -221,10 +224,11 @@ func HttpGet(url string) ([]byte, error) {
 	return body, nil
 }
 
-func GetKeyFromKeyGrantor(keyGrantorUrl string) (*bip32.Key, error) {
+func GetKeyFromKeyGrantor(keyGrantorUrl string, clientData [32]byte) (*bip32.Key, error) {
 	privKey := ecies.NewPrivateKeyFromBytes(generateRandom32Bytes())
 	pubkey := privKey.PublicKey.Bytes(true)
-	report, err := enclave.GetRemoteReport(pubkey)
+	pubkeyHash := sha256.Sum256(pubkey)
+	report, err := enclave.GetRemoteReport(append(pubkeyHash[:], clientData[:]...))
 	if err != nil {
 		return nil, fmt.Errorf("failed to get remote report: %w", err)
 	}
@@ -232,9 +236,16 @@ func GetKeyFromKeyGrantor(keyGrantorUrl string) (*bip32.Key, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create attestation report: %w", err)
 	}
-	// todo: support https
-	url := fmt.Sprintf("http://%s/getkey?report=%s&token=%s", keyGrantorUrl, hex.EncodeToString(report), token)
-	res, err := HttpGet(url)
+	url := fmt.Sprintf("%s/getkey?pubkey=%s", keyGrantorUrl, hex.EncodeToString(pubkey))
+	params := GetKeyParams{
+		Report: hex.EncodeToString(report),
+		JWT:    token,
+	}
+	jsonReq, err := json.Marshal(params)
+	if err != nil {
+		return nil, err
+	}
+	res, err := HttpPost(url, jsonReq)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get key: %w", err)
 	}

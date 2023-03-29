@@ -9,7 +9,7 @@
 
 #define _rdrand16_step(x) _rdrand_step(x)
 
-int rdrand_16(uint16_t* x, int retry)
+int rdrand16(uint16_t* x, int retry)
 {
 	unsigned int i;
 		if (retry)

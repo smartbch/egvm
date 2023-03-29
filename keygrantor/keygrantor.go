@@ -46,7 +46,7 @@ func generateRandom64Bytes() []byte {
 	var x C.uint16_t
 	var retry C.int = 1
 	for i := 0; i < 64; i++ {
-		C.rdrand_16(&x, retry)
+		C.rdrand16(&x, retry)
 		out = append(out, byte(x))
 	}
 	return out
@@ -57,7 +57,7 @@ func generateRandom32Bytes() []byte {
 	var x C.uint16_t
 	var retry C.int = 1
 	for i := 0; i < 32; i++ {
-		C.rdrand_16(&x, retry)
+		C.rdrand16(&x, retry)
 		out = append(out, byte(x))
 	}
 	return out

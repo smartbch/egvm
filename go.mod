@@ -7,7 +7,7 @@ require (
 	github.com/ecies/go/v2 v2.0.5
 	github.com/edgelesssys/ego v1.2.0
 	github.com/ethereum/go-ethereum v1.11.0
-	github.com/holiman/uint256 v1.2.0
+	github.com/holiman/uint256 v1.2.2
 	github.com/stretchr/testify v1.8.2
 	github.com/tyler-smith/go-bip32 v1.0.0
 )

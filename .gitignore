@@ -19,3 +19,4 @@ cmd/cmd
 keygrantor/cmd/cmd
 
 .idea
+lambdascript/cmd/cmd

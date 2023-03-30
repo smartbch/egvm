@@ -22,6 +22,8 @@ func RegisterFunctions(vm *goja.Runtime) {
 	vm.Set("BufToS256", BufToS256)
 	vm.Set("U256", U256)
 	vm.Set("S256", S256)
+	vm.Set("AesGcmDecrypt", AesGcmDecrypt)
+	vm.Set("AesGcmEncrypt", AesGcmEncrypt)
 	vm.Set("BufToPrivateKey", BufToPrivateKey)
 	vm.Set("BufToPublicKey", BufToPublicKey)
 	vm.Set("Keccak256", Keccak256)

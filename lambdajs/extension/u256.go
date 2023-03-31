@@ -25,8 +25,11 @@ func BufToU256(buf goja.ArrayBuffer) Uint256 {
 	return Uint256{x: uint256.NewInt(0).SetBytes(buf.Bytes())}
 }
 
-func U256(n uint64) Uint256 {
-	return Uint256{x: uint256.NewInt(n)}
+func U256(v uint64) Uint256 {
+	if v > MAX_SAFE_INTEGER {
+		panic(goja.NewSymbol("larger than Number.MAX_SAFE_INTEGER"))
+	}
+	return Uint256{x: uint256.NewInt(v)}
 }
 
 func (u Uint256) ToS256() Sint256 {

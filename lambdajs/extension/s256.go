@@ -5,6 +5,10 @@ import (
 	"github.com/holiman/uint256"
 )
 
+var (
+	MIN_NEG_VALUE = uint256.NewInt(0).Lsh(uint256.NewInt(1), 255)
+)
+
 type Sint256 struct {
 	x *uint256.Int
 }
@@ -21,11 +25,14 @@ func BufToS256(buf goja.ArrayBuffer) Sint256 {
 	return Sint256{x: uint256.NewInt(0).SetBytes(buf.Bytes())}
 }
 
-func S256(n int64) Sint256 {
-	if n>=0 {
-		return Sint256{x: uint256.NewInt(uint64(n))}
+func S256(v int64) Sint256 {
+	if v > int64(MAX_SAFE_INTEGER) || -v > int64(MAX_SAFE_INTEGER) {
+		panic(goja.NewSymbol("larger than Number.MAX_SAFE_INTEGER"))
 	}
-	tmp := uint256.NewInt(uint64(-n))
+	if v>=0 {
+		return Sint256{x: uint256.NewInt(uint64(v))}
+	}
+	tmp := uint256.NewInt(uint64(-v))
 	return Sint256{x: uint256.NewInt(0).Neg(tmp)}
 }
 
@@ -34,17 +41,22 @@ func (u Sint256) ToU256() Uint256 {
 }
 
 func (u Sint256) Abs() Sint256 {
+	if u.x.Eq(MIN_NEG_VALUE) {
+		panic(goja.NewSymbol("overflow in Abs"))
+	}
 	result := uint256.NewInt(0).Abs(u.x)
 	return Sint256{x: result}
 }
 
 func (u Sint256) Neg() Sint256 {
+	if u.x.Eq(MIN_NEG_VALUE) {
+		panic(goja.NewSymbol("overflow in Neg"))
+	}
 	result := uint256.NewInt(0).Neg(u.x)
 	return Sint256{x: result}
 }
 
 func (u Sint256) Add(v Sint256) Sint256 {
-	errSymbol := goja.NewSymbol("overflow in signed addition")
 	result, overflow := (*uint256.Int)(nil), false
 	if u.x.Sign() >= 0 && v.x.Sign() >= 0 {
 		result, overflow = uint256.NewInt(0).AddOverflow(u.x, v.x)
@@ -53,7 +65,7 @@ func (u Sint256) Add(v Sint256) Sint256 {
 		overflow = u.x.Sign() < 0 && v.x.Sign() < 0 && result.Sign() >= 0
 	}
 	if overflow {
-		panic(errSymbol)
+		panic(goja.NewSymbol("overflow in signed addition"))
 	}
 	return Sint256{x: result}
 }
@@ -71,18 +83,20 @@ func (u Sint256) Sign() int {
 }
 
 func (u Sint256) Sub(v Sint256) Sint256 {
-	errSymbol := goja.NewSymbol("overflow in signed substraction")
 	result := uint256.NewInt(0).Sub(u.x, v.x)
 	uSign, vSign, rSign := u.x.Sign(), v.x.Sign(), result.Sign()
 	overflow := (uSign > 0 && vSign < 0 && rSign < 0) || // pos - neg < 0
 		(uSign < 0 && vSign > 0 && rSign > 0) // neg - pos > 0
 	if overflow {
-		panic(errSymbol)
+		panic(goja.NewSymbol("overflow in signed substraction"))
 	}
 	return Sint256{x: result}
 }
 
 func (u Sint256) Mul(v Sint256) Sint256 {
+	if u.x.Eq(MIN_NEG_VALUE) || v.x.Eq(MIN_NEG_VALUE) {
+		panic(goja.NewSymbol("overflow in signed multiplication"))
+	}
 	p, q := uint256.NewInt(0).Abs(u.x), uint256.NewInt(0).Abs(v.x)
 	result, overflow := uint256.NewInt(0).MulOverflow(p, q)
 	if overflow {
@@ -95,6 +109,9 @@ func (u Sint256) Mul(v Sint256) Sint256 {
 }
 
 func (u Sint256) Div(v Sint256) Sint256 {
+	if u.x.Eq(MIN_NEG_VALUE) || v.x.Eq(MIN_NEG_VALUE) {
+		panic(goja.NewSymbol("overflow in division"))
+	}
 	if v.x.IsZero() {
 		panic(goja.NewSymbol("divide by zero"))
 	}

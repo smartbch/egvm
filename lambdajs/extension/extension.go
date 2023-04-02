@@ -13,6 +13,7 @@ import (
 	"github.com/dop251/goja"
 	ecies "github.com/ecies/go/v2"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/klauspost/compress/zstd"
 )
 
 func RegisterFunctions(vm *goja.Runtime) {
@@ -446,3 +447,19 @@ func Ecrecover(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
 	return vm.ToValue(vm.NewArrayBuffer(bz))
 }
 
+func ZstdDecompress(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
+	src := getOneArrayBuffer(f)
+	var decoder, _ = zstd.NewReader(nil, zstd.WithDecoderConcurrency(0))
+	bz, err := decoder.DecodeAll(src, nil)
+	if err != nil {
+		panic(goja.NewSymbol("error in ZstdDecompress: "+err.Error()))
+	}
+	return vm.ToValue(vm.NewArrayBuffer(bz))
+}
+
+func ZstdCompress(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
+	src := getOneArrayBuffer(f)
+	var encoder, _ = zstd.NewWriter(nil)
+	bz := encoder.EncodeAll(src, make([]byte, 0, len(src)))
+	return vm.ToValue(vm.NewArrayBuffer(bz))
+} 

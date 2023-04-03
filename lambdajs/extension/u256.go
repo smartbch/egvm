@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	MAX_SAFE_INTEGER = (uint64(1)<<53) - 1
+	MAX_SAFE_INTEGER = (uint64(1) << 53) - 1
 )
 
 type Uint256 struct {
@@ -75,10 +75,8 @@ func (u Uint256) DivMod(v Uint256) [2]Uint256 {
 		panic(goja.NewSymbol("divide by zero"))
 	}
 	quo, rem := uint256.NewInt(0).DivMod(u.x, v.x, uint256.NewInt(0))
-	
-	return [2]Uint256{Uint256{x: quo}, Uint256{x: rem}}
+	return [2]Uint256{{x: quo}, {x: rem}}
 }
-
 
 func (u Uint256) Exp(v Uint256) Uint256 {
 	result := uint256.NewInt(0).Exp(u.x, v.x)
@@ -190,12 +188,12 @@ func (u Uint256) UnsafeSub(v Uint256) Uint256 {
 
 func (u Uint256) IsSafeInteger() bool {
 	u64, overflow := u.x.Uint64WithOverflow()
-	return u64 <= MAX_SAFE_INTEGER && !overflow 
+	return u64 <= MAX_SAFE_INTEGER && !overflow
 }
 
 func (u Uint256) ToSafeInteger() uint64 {
 	u64, overflow := u.x.Uint64WithOverflow()
-	safe := u64 <= MAX_SAFE_INTEGER && !overflow 
+	safe := u64 <= MAX_SAFE_INTEGER && !overflow
 	if !safe {
 		panic(goja.NewSymbol("Overflow in ToSafeInteger"))
 	}

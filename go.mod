@@ -18,10 +18,14 @@ require (
 	github.com/FactomProject/btcutilecc v0.0.0-20130527213604-d3a63a5752ec // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.2.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/dchest/siphash v1.2.2 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.1.0 // indirect
 	github.com/dlclark/regexp2 v1.7.0 // indirect
+	github.com/gcash/bchd v0.17.2-0.20201218180520-5708823e0e99 // indirect
+	github.com/gcash/bchutil v0.0.0-20210113190856-6ea28dff4000 // indirect
 	github.com/go-sourcemap/sourcemap v2.1.3+incompatible // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/vechain/go-ecvrf v0.0.0-20220525125849-96fa0442e765 // indirect
 	golang.org/x/crypto v0.7.0 // indirect
 	golang.org/x/sys v0.6.0 // indirect
 	golang.org/x/text v0.8.0 // indirect

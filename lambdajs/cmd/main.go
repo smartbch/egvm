@@ -9,7 +9,7 @@ import (
 
 	"github.com/dop251/goja"
 
-	"github.com/smartbch/pureauth/lambdascript/extension"
+	"github.com/smartbch/pureauth/lambdajs/extension"
 )
 
 func readSource(filename string) ([]byte, error) {

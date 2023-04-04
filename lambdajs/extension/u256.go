@@ -191,13 +191,13 @@ func (u Uint256) IsSafeInteger() bool {
 	return u64 <= MAX_SAFE_INTEGER && !overflow
 }
 
-func (u Uint256) ToSafeInteger() uint64 {
+func (u Uint256) ToSafeInteger() int64 {
 	u64, overflow := u.x.Uint64WithOverflow()
 	safe := u64 <= MAX_SAFE_INTEGER && !overflow
 	if !safe {
 		panic(goja.NewSymbol("Overflow in ToSafeInteger"))
 	}
-	return u64
+	return int64(u64)
 }
 
 func (u Uint256) ToBuf(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
@@ -218,7 +218,7 @@ func (u Uint256) ToHex(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
 
 func (u Uint256) ToString(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
 	if len(f.Arguments) != 0 {
-		panic(vm.ToValue("ToHex has no arguments."))
+		panic(vm.ToValue("ToString has no arguments."))
 	}
 	return vm.ToValue(u.x.String())
 }

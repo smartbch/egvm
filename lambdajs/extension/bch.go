@@ -93,9 +93,9 @@ func getPubkeyFromSigScript(sigScript []byte) (string, error) {
 	if len(pushes) != 2 {
 		return "", fmt.Errorf("invalid sigScript")
 	}
-	if len(pushes[1]) != 65 {
-		return "", fmt.Errorf("invalid pubkey")
-	}
+	//if len(pushes[1]) != 65 {
+	//	return "", fmt.Errorf("invalid pubkey")
+	//}
 	return hex.EncodeToString(pushes[1]), nil
 }
 

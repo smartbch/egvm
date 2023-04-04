@@ -24,6 +24,7 @@ type TxIn struct {
 	PreviousOutPoint OutPoint
 	HexPubkey        string
 	Sequence         uint32
+	Value            int64
 }
 
 type OutPoint struct {
@@ -169,8 +170,8 @@ func SignTxAndSerialize(tx BchTx, minerFeePrice float64, privateKeys ...PrivateK
 			return "", fmt.Errorf("failed to create locaking script of input#%d, %w", idx, err)
 		}
 
-		var inputVal int64 = 0 // TODO
-		sigHash, err := txscript.CalcSignatureHash(pubkeyScript, sigHashes, hashType, msgTx, idx, inputVal, true)
+		sigHash, err := txscript.CalcSignatureHash(pubkeyScript, sigHashes, hashType, msgTx,
+			idx, tx.TxIn[idx].Value, true)
 		if err != nil {
 			return "", fmt.Errorf("failed to calc signature hash of input#%d, %w", idx, err)
 		}

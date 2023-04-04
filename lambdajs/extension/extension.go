@@ -9,6 +9,7 @@ import (
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/hex"
+	"io"
 	"fmt"
 	"hash"
 	"strings"
@@ -492,7 +493,7 @@ func isASCII(s string) bool {
 	return true
 }
 
-func hashFunc(f goja.FunctionCall, vm *goja.Runtime, h io.Writer) goja.Value {
+func hashFunc(f goja.FunctionCall, vm *goja.Runtime, h io.Writer) {
 	var buf [32]byte
 	for _, arg := range(f.Arguments) {
 		switch v := arg.Export().(type) {
@@ -533,7 +534,7 @@ func Ripemd160(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
 func XxHash(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
 	h := xxhash.New()
 	hashFunc(f, vm, h)
-	return vm.ToValue(vm.NewArrayBuffer(h.Sum64()))
+	return vm.ToValue(h.Sum64())
 }
 
 func BufConcat(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
@@ -607,6 +608,14 @@ func BufCompare(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
 	return vm.ToValue(bytes.Compare(a, b))
 }
 
+func BufReverse(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
+	a := getOneArrayBuffer(f)
+	b := make([]byte, 0, len(a))
+	for i := range a {
+		b = append(b, a[len(a)-1-i])
+	}
+	return vm.ToValue(vm.NewArrayBuffer(a))
+}
 
 type BufBuilder struct {
 	b *strings.Builder

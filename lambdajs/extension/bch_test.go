@@ -9,7 +9,7 @@ import (
 
 func TestGetPubkeyHashHex(t *testing.T) {
 	pkScript, _ := hex.DecodeString("76a914307f40d73e01af33364901d82d5614e370f905d388ac")
-	pbkHash := getPubkeyHashHex(pkScript)
+	pbkHash := getPubkeyHashFromPkScript(pkScript)
 	require.Equal(t, "307f40d73e01af33364901d82d5614e370f905d3", pbkHash)
 }
 

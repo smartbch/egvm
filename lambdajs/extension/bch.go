@@ -124,7 +124,7 @@ func getOpRetData(pkScript []byte) (hexData []string) {
 	return
 }
 
-func SignTxAndSerialize(tx BchTx, minerFeePrice float64, privateKeys ...PrivateKey) (string, error) {
+func SignTxAndSerialize(tx BchTx, privateKeys ...PrivateKey) (string, error) {
 	if len(tx.TxIn) != len(privateKeys) {
 		return "", fmt.Errorf("length of tx inputs and private keys mismatch")
 	}

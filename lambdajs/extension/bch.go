@@ -51,13 +51,18 @@ func ParseTxInHex(hexStr string) (*BchTx, error) {
 
 	txIn := make([]TxIn, len(msgTx.TxIn))
 	for i, msgTxIn := range msgTx.TxIn {
+		pubkey, err := getPubkeyFromSigScript(msgTxIn.SignatureScript)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get pubkey from unlocking script of input#%d, %w", i, err)
+		}
+
 		txIn[i] = TxIn{
 			PreviousOutPoint: OutPoint{
 				HexTxID: msgTxIn.PreviousOutPoint.Hash.String(),
 				Index:   msgTxIn.PreviousOutPoint.Index,
 			},
-			//HexPubkey: , // TODO
-			Sequence: msgTxIn.Sequence,
+			HexPubkey: pubkey,
+			Sequence:  msgTxIn.Sequence,
 		}
 	}
 
@@ -65,7 +70,7 @@ func ParseTxInHex(hexStr string) (*BchTx, error) {
 	for i, msgTxOut := range msgTx.TxOut {
 		txOut[i] = TxOut{
 			Value:           msgTxOut.Value,
-			HexPubkeyHash:   getPubkeyHashHex(msgTxOut.PkScript),
+			HexPubkeyHash:   getPubkeyHashFromPkScript(msgTxOut.PkScript),
 			HexDataElements: getOpRetData(msgTxOut.PkScript),
 		}
 	}
@@ -79,8 +84,23 @@ func ParseTxInHex(hexStr string) (*BchTx, error) {
 	}, nil
 }
 
+// <sig> <pubkey>
+func getPubkeyFromSigScript(sigScript []byte) (string, error) {
+	pushes, err := txscript.PushedData(sigScript)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse sigScript: %w", err)
+	}
+	if len(pushes) != 2 {
+		return "", fmt.Errorf("invalid sigScript")
+	}
+	if len(pushes[1]) != 65 {
+		return "", fmt.Errorf("invalid pubkey")
+	}
+	return hex.EncodeToString(pushes[1]), nil
+}
+
 // OP_DUP OP_HASH160 <pkh> OP_EQUALVERIFY OP_CHECKSIG
-func getPubkeyHashHex(pkScript []byte) string {
+func getPubkeyHashFromPkScript(pkScript []byte) string {
 	if len(pkScript) == 25 &&
 		pkScript[0] == txscript.OP_DUP &&
 		pkScript[1] == txscript.OP_HASH160 &&

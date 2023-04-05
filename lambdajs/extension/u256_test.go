@@ -171,7 +171,7 @@ const (
 	`
 )
 
-func setupGojaVm() *goja.Runtime {
+func setupGojaVmForU256() *goja.Runtime {
 	vm := goja.New()
 
 	vm.Set("U256", U256)
@@ -181,7 +181,7 @@ func setupGojaVm() *goja.Runtime {
 }
 
 func TestCreateU256(t *testing.T) {
-	vm := setupGojaVm()
+	vm := setupGojaVmForU256()
 
 	// U256
 	v1, err := vm.RunString(fmt.Sprintf(U256ScriptTemplate, 1))
@@ -201,20 +201,20 @@ func TestCreateU256(t *testing.T) {
 
 func TestToS256(t *testing.T) {
 	// positive
-	vm := setupGojaVm()
+	vm := setupGojaVmForU256()
 	v1, err := vm.RunString(fmt.Sprintf(ToS256ScriptTemplate, 100))
 	require.NoError(t, err)
 	require.EqualValues(t, "0x64", v1.String())
 
 	// zero
-	vm = setupGojaVm()
+	vm = setupGojaVmForU256()
 	v2, err := vm.RunString(fmt.Sprintf(ToS256ScriptTemplate, 0))
 	require.NoError(t, err)
 	require.EqualValues(t, "0x0", v2.String())
 }
 
 func TestU256Add(t *testing.T) {
-	vm := setupGojaVm()
+	vm := setupGojaVmForU256()
 
 	v1, err := vm.RunString(fmt.Sprintf(U256AddScriptTemplate, 5, 8))
 	require.NoError(t, err)
@@ -225,7 +225,7 @@ func TestU256Add(t *testing.T) {
 	require.EqualValues(t, "0xd", v2.String())
 
 	// overflow
-	vm = setupGojaVm()
+	vm = setupGojaVmForU256()
 	v3, err := vm.RunString(fmt.Sprintf(U256UnsafeAddScriptTemplate, MAX_SAFE_INTEGER, MAX_SAFE_INTEGER))
 	require.NoError(t, err)
 	require.EqualValues(t, "0x3ffffffffffffe", v3.String())
@@ -233,19 +233,19 @@ func TestU256Add(t *testing.T) {
 
 func TestU256DivAndMod(t *testing.T) {
 	// Div
-	vm := setupGojaVm()
+	vm := setupGojaVmForU256()
 	v1, err := vm.RunString(fmt.Sprintf(U256DivScriptTemplate, 10, 3))
 	require.NoError(t, err)
 	require.EqualValues(t, "0x3", v1.String())
 
 	// Mod
-	vm = setupGojaVm()
+	vm = setupGojaVmForU256()
 	v2, err := vm.RunString(fmt.Sprintf(U256ModScriptTemplate, 10, 3))
 	require.NoError(t, err)
 	require.EqualValues(t, "0x1", v2.String())
 
 	// DivMod
-	vm = setupGojaVm()
+	vm = setupGojaVmForU256()
 	_, err = vm.RunString(fmt.Sprintf(U256DivModScriptTemplate, 10, 3))
 	require.NoError(t, err)
 
@@ -256,14 +256,14 @@ func TestU256DivAndMod(t *testing.T) {
 }
 
 func TestU256Exp(t *testing.T) {
-	vm := setupGojaVm()
+	vm := setupGojaVmForU256()
 	v1, err := vm.RunString(fmt.Sprintf(U256ExpScriptTemplate, 10, 2))
 	require.NoError(t, err)
 	require.EqualValues(t, "0x64", v1.String())
 }
 
 func TestU256Mul(t *testing.T) {
-	vm := setupGojaVm()
+	vm := setupGojaVmForU256()
 
 	v1, err := vm.RunString(fmt.Sprintf(U256MulScriptTemplate, 2, 5))
 	require.NoError(t, err)
@@ -274,14 +274,14 @@ func TestU256Mul(t *testing.T) {
 	require.EqualValues(t, "0xa", v2.String())
 
 	// overflow
-	vm = setupGojaVm()
+	vm = setupGojaVmForU256()
 	v3, err := vm.RunString(fmt.Sprintf(U256UnsafeMulScriptTemplate, 2, MAX_SAFE_INTEGER))
 	require.NoError(t, err)
 	require.EqualValues(t, "0x3ffffffffffffe", v3.String())
 }
 
 func TestU256And(t *testing.T) {
-	vm := setupGojaVm()
+	vm := setupGojaVmForU256()
 
 	v1, err := vm.RunString(fmt.Sprintf(U256AndScriptTemplate, "0xff", "0xf0"))
 	require.NoError(t, err)
@@ -289,7 +289,7 @@ func TestU256And(t *testing.T) {
 }
 
 func TestU256Or(t *testing.T) {
-	vm := setupGojaVm()
+	vm := setupGojaVmForU256()
 
 	v1, err := vm.RunString(fmt.Sprintf(U256OrScriptTemplate, "0xf", "0xf0"))
 	require.NoError(t, err)
@@ -297,7 +297,7 @@ func TestU256Or(t *testing.T) {
 }
 
 func TestU256Not(t *testing.T) {
-	vm := setupGojaVm()
+	vm := setupGojaVmForU256()
 
 	v1, err := vm.RunString(fmt.Sprintf(U256NotScriptTemplate, "0xf"))
 	require.NoError(t, err)
@@ -305,7 +305,7 @@ func TestU256Not(t *testing.T) {
 }
 
 func TestU256Compare(t *testing.T) {
-	vm := setupGojaVm()
+	vm := setupGojaVmForU256()
 
 	_, err := vm.RunString(fmt.Sprintf(U256CompareScriptTemplate, 5, 2))
 	require.NoError(t, err)
@@ -326,7 +326,7 @@ func TestU256Compare(t *testing.T) {
 }
 
 func TestU256CompareNum(t *testing.T) {
-	vm := setupGojaVm()
+	vm := setupGojaVmForU256()
 
 	_, err := vm.RunString(fmt.Sprintf(U256CompareNumScriptTemplate, 5))
 	require.NoError(t, err)
@@ -343,7 +343,7 @@ func TestU256CompareNum(t *testing.T) {
 }
 
 func TestU256Sqrt(t *testing.T) {
-	vm := setupGojaVm()
+	vm := setupGojaVmForU256()
 	v1, err := vm.RunString(fmt.Sprintf(U256SqrtScriptTemplate, 10))
 	require.NoError(t, err)
 	require.EqualValues(t, "0x3", v1.String())
@@ -351,26 +351,26 @@ func TestU256Sqrt(t *testing.T) {
 
 func TestU256Sub(t *testing.T) {
 	// Sub
-	vm := setupGojaVm()
+	vm := setupGojaVmForU256()
 	v1, err := vm.RunString(fmt.Sprintf(U256SubScriptTemplate, 10, 5))
 	require.NoError(t, err)
 	require.EqualValues(t, "0x5", v1.String())
 
 	// UnsafeSub
-	vm = setupGojaVm()
+	vm = setupGojaVmForU256()
 	v2, err := vm.RunString(fmt.Sprintf(U256UnsafeSubScriptTemplate, 10, 5))
 	require.NoError(t, err)
 	require.EqualValues(t, "0x5", v2.String())
 
 	// overflow
-	vm = setupGojaVm()
+	vm = setupGojaVmForU256()
 	v3, err := vm.RunString(fmt.Sprintf(U256UnsafeSubScriptTemplate, 0, 1))
 	require.NoError(t, err)
 	require.EqualValues(t, "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", v3.String())
 }
 
 func TestU256Shift(t *testing.T) {
-	vm := setupGojaVm()
+	vm := setupGojaVmForU256()
 	_, err := vm.RunString(fmt.Sprintf(U256ShiftScriptTemplate, "0xf", 2, 2))
 	require.NoError(t, err)
 
@@ -381,7 +381,7 @@ func TestU256Shift(t *testing.T) {
 }
 
 func TestU256SafeInteger(t *testing.T) {
-	vm := setupGojaVm()
+	vm := setupGojaVmForU256()
 	_, err := vm.RunString(fmt.Sprintf(U256SafeIntegerScriptTemplate, 100))
 	require.NoError(t, err)
 
@@ -392,7 +392,7 @@ func TestU256SafeInteger(t *testing.T) {
 }
 
 func TestU256Conversion(t *testing.T) {
-	vm := setupGojaVm()
+	vm := setupGojaVmForU256()
 	_, err := vm.RunString(fmt.Sprintf(U256ConversionScriptTemplate, 100))
 	require.NoError(t, err)
 

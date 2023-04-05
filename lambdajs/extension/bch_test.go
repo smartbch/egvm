@@ -20,11 +20,11 @@ func TestGetOpRetData(t *testing.T) {
 	pkScript, _ := hex.DecodeString("6a04454754581456eb561cb6f98a985f80464fa99267a462c91bdb14e94358e473941de2d75d19fa330d607e05ffab4214efc507fb38cbcae3b32d1777e54593bc07eca5a1204ea5c508a6566e76240543f8feb06fd457777be300005af3107a400000000001")
 	retData := getOpRetData(pkScript)
 	require.Len(t, retData, 5)
-	require.Equal(t, retData[0], "45475458")
-	require.Equal(t, retData[1], "56eb561cb6f98a985f80464fa99267a462c91bdb")
-	require.Equal(t, retData[2], "e94358e473941de2d75d19fa330d607e05ffab42")
-	require.Equal(t, retData[3], "efc507fb38cbcae3b32d1777e54593bc07eca5a1")
-	require.Equal(t, retData[4], "4ea5c508a6566e76240543f8feb06fd457777be300005af3107a400000000001")
+	require.Equal(t, "45475458", retData[0])
+	require.Equal(t, "56eb561cb6f98a985f80464fa99267a462c91bdb", retData[1])
+	require.Equal(t, "e94358e473941de2d75d19fa330d607e05ffab42", retData[2])
+	require.Equal(t, "efc507fb38cbcae3b32d1777e54593bc07eca5a1", retData[3])
+	require.Equal(t, "4ea5c508a6566e76240543f8feb06fd457777be300005af3107a400000000001", retData[4])
 }
 
 func TestParseTxInHex(t *testing.T) {
@@ -77,7 +77,7 @@ func TestSignTxAndSerialize(t *testing.T) {
 	privKey, err := ecies.GenerateKey()
 	require.NoError(t, err)
 
-	signedTxHex, err := SignTxAndSerialize(*tx, 0, PrivateKey{key: privKey})
+	signedTxHex, err := SignTxAndSerialize(*tx, PrivateKey{key: privKey})
 	require.NoError(t, err)
 	fmt.Println(signedTxHex)
 
@@ -87,4 +87,6 @@ func TestSignTxAndSerialize(t *testing.T) {
 	require.Equal(t, uint32(0), signedTx.LockTime)
 	require.Len(t, signedTx.TxIn, 1)
 	require.Len(t, signedTx.TxOut, 3)
+	require.Len(t, signedTx.TxOut[0].HexDataElements, 5)
+	require.Equal(t, "8097f6fbaa0dfdfe4f064bb650324c5e80182420", signedTx.TxOut[1].HexPubkeyHash)
 }

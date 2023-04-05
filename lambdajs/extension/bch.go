@@ -85,6 +85,84 @@ func ParseTxInHex(hexStr string) (*BchTx, error) {
 	}, nil
 }
 
+func SignTxAndSerialize(tx BchTx, privateKeys ...PrivateKey) (string, error) {
+	if len(tx.TxIn) != len(privateKeys) {
+		return "", fmt.Errorf("length of tx inputs and private keys mismatch")
+	}
+
+	msgTx := wire.NewMsgTx(tx.Version)
+	msgTx.LockTime = tx.LockTime
+	for idx, in := range tx.TxIn {
+		prevTxHash, err := chainhash.NewHashFromStr(in.PreviousOutPoint.HexTxID)
+		if err != nil {
+			return "", fmt.Errorf("failed to decode prevTxHash of input#%d: %w", idx, err)
+		}
+		msgTx.AddTxIn(&wire.TxIn{
+			PreviousOutPoint: wire.OutPoint{
+				Hash:  *prevTxHash,
+				Index: in.PreviousOutPoint.Index,
+			},
+		})
+	}
+	for idx, out := range tx.TxOut {
+		var pkScript []byte
+		if out.HexPubkeyHash != "" {
+			pubkeyHash, err := hex.DecodeString(out.HexPubkeyHash)
+			if err != nil {
+				return "", fmt.Errorf("failed to decode pubkeyHash of output#%d, %w", idx, err)
+			}
+			pkScript, err = payToPubKeyHashPkScript(pubkeyHash)
+			if err != nil {
+				return "", fmt.Errorf("failed to create pkScript of output#%d, %w", idx, err)
+			}
+		} else if len(out.HexDataElements) > 0 {
+			var err error
+			pkScript, err = opRetPkScript(out.HexDataElements)
+			if err != nil {
+				return "", fmt.Errorf("failed to create pkScript of output#%d, %w", idx, err)
+			}
+		} else {
+			return "", fmt.Errorf("output#%d has no HexPubkeyHash or HexDataElements field", idx)
+		}
+		msgTx.AddTxOut(&wire.TxOut{
+			Value:    out.Value,
+			PkScript: pkScript,
+		})
+	}
+
+	sigHashes := txscript.NewTxSigHashes(msgTx)
+	hashType := txscript.SigHashAll | txscript.SigHashForkID
+	for idx, in := range msgTx.TxIn {
+		privKey := (*bchec.PrivateKey)(privateKeys[idx].toECDSA())
+		pubKeyBytes := privKey.PubKey().SerializeCompressed()
+		pubkeyHash := bchutil.Hash160(pubKeyBytes)
+
+		pubkeyScript, err := payToPubKeyHashPkScript(pubkeyHash)
+		if err != nil {
+			return "", fmt.Errorf("failed to create locaking script of input#%d, %w", idx, err)
+		}
+
+		sigHash, err := txscript.CalcSignatureHash(pubkeyScript, sigHashes, hashType, msgTx,
+			idx, tx.TxIn[idx].Value, true)
+		if err != nil {
+			return "", fmt.Errorf("failed to calc signature hash of input#%d, %w", idx, err)
+		}
+
+		sig, err := signTxSigHashECDSA(privKey, sigHash, hashType)
+		if err != nil {
+			return "", fmt.Errorf("failed to sign sigHash of input#%d, %w", idx, err)
+		}
+
+		sigScript, err := txscript.NewScriptBuilder().AddData(sig).AddData(pubKeyBytes).Script()
+		if err != nil {
+			return "", fmt.Errorf("failed to create unlocking script of input#%d, %w", idx, err)
+		}
+		in.SignatureScript = sigScript
+	}
+
+	return hex.EncodeToString(msgTxToBytes(msgTx)), nil
+}
+
 // <sig> <pubkey>
 func getPubkeyFromSigScript(sigScript []byte) (string, error) {
 	pushes, err := txscript.PushedData(sigScript)
@@ -113,6 +191,7 @@ func getPubkeyHashFromPkScript(pkScript []byte) string {
 	return ""
 }
 
+// OP_RETURN <data1> <data2> ...
 func getOpRetData(pkScript []byte) (hexData []string) {
 	if len(pkScript) > 1 && pkScript[0] == txscript.OP_RETURN {
 		data, _ := txscript.PushedData(pkScript)
@@ -124,74 +203,7 @@ func getOpRetData(pkScript []byte) (hexData []string) {
 	return
 }
 
-func SignTxAndSerialize(tx BchTx, privateKeys ...PrivateKey) (string, error) {
-	if len(tx.TxIn) != len(privateKeys) {
-		return "", fmt.Errorf("length of tx inputs and private keys mismatch")
-	}
-
-	msgTx := wire.NewMsgTx(tx.Version)
-	msgTx.LockTime = tx.LockTime
-	for idx, in := range tx.TxIn {
-		prevTxHash, err := chainhash.NewHashFromStr(in.PreviousOutPoint.HexTxID)
-		if err != nil {
-			return "", fmt.Errorf("failed to decode prevTxHash of input#%d: %w", idx, err)
-		}
-		msgTx.AddTxIn(&wire.TxIn{
-			PreviousOutPoint: wire.OutPoint{
-				Hash:  *prevTxHash,
-				Index: in.PreviousOutPoint.Index,
-			},
-		})
-	}
-	for idx, out := range tx.TxOut {
-		pubkeyHash, err := hex.DecodeString(out.HexPubkeyHash)
-		if err != nil {
-			return "", fmt.Errorf("failed to decode pubkeyHash of output#%d, %w", idx, err)
-		}
-		pkScript, err := payToPubKeyHashScript(pubkeyHash)
-		if err != nil {
-			return "", fmt.Errorf("failed to create pkScript of output#%d, %w", idx, err)
-		}
-		msgTx.AddTxOut(&wire.TxOut{
-			Value:    out.Value,
-			PkScript: pkScript,
-		})
-	}
-
-	sigHashes := txscript.NewTxSigHashes(msgTx)
-	hashType := txscript.SigHashAll | txscript.SigHashForkID
-	for idx, in := range msgTx.TxIn {
-		privKey := (*bchec.PrivateKey)(privateKeys[idx].toECDSA())
-		pubKeyBytes := privKey.PubKey().SerializeCompressed()
-		pubkeyHash := bchutil.Hash160(pubKeyBytes)
-
-		pubkeyScript, err := payToPubKeyHashScript(pubkeyHash)
-		if err != nil {
-			return "", fmt.Errorf("failed to create locaking script of input#%d, %w", idx, err)
-		}
-
-		sigHash, err := txscript.CalcSignatureHash(pubkeyScript, sigHashes, hashType, msgTx,
-			idx, tx.TxIn[idx].Value, true)
-		if err != nil {
-			return "", fmt.Errorf("failed to calc signature hash of input#%d, %w", idx, err)
-		}
-
-		sig, err := signTxSigHashECDSA(privKey, sigHash, hashType)
-		if err != nil {
-			return "", fmt.Errorf("failed to sign sigHash of input#%d, %w", idx, err)
-		}
-
-		sigScript, err := txscript.NewScriptBuilder().AddData(sig).AddData(pubKeyBytes).Script()
-		if err != nil {
-			return "", fmt.Errorf("failed to create unlocking script of input#%d, %w", idx, err)
-		}
-		in.SignatureScript = sigScript
-	}
-
-	return hex.EncodeToString(msgTxToBytes(msgTx)), nil
-}
-
-func payToPubKeyHashScript(pubKeyHash []byte) ([]byte, error) {
+func payToPubKeyHashPkScript(pubKeyHash []byte) ([]byte, error) {
 	return txscript.NewScriptBuilder().
 		AddOp(txscript.OP_DUP).
 		AddOp(txscript.OP_HASH160).
@@ -199,6 +211,18 @@ func payToPubKeyHashScript(pubKeyHash []byte) ([]byte, error) {
 		AddOp(txscript.OP_EQUALVERIFY).
 		AddOp(txscript.OP_CHECKSIG).
 		Script()
+}
+
+func opRetPkScript(hexDataElements []string) ([]byte, error) {
+	builder := txscript.NewScriptBuilder().AddOp(txscript.OP_RETURN)
+	for i, dataHex := range hexDataElements {
+		data, err := hex.DecodeString(dataHex)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode data#%d, %w", i, err)
+		}
+		builder.AddData(data)
+	}
+	return builder.Script()
 }
 
 func signTxSigHashECDSA(privKey *bchec.PrivateKey,

@@ -31,7 +31,7 @@ func TestParseTxInHex(t *testing.T) {
 	// https://blockchair.com/bitcoin-cash/transaction/c1d33d4c03c81f8dee2f176b944bc05eb08524163698d4d397a8fb9ca7cd2651
 	txHex := "020000000147c8c5a1f4d7d5e3846a7e945daf634722340f617be0ff8736e668d7ee7d9fb402000000644128fd33544f9530b1a8ae03340bdfe9385324adf0ecefc39d53e6fddf9afdb64ccf3ef12bc692045d87e90380919429d3c5bafc29b51515aa0a992dd0d085663e4121031c60b05831b6f3c31739856575cde27d97d9fe926a63d51abce4a0c16b4108be00000000030000000000000000666a04454754581456eb561cb6f98a985f80464fa99267a462c91bdb14e94358e473941de2d75d19fa330d607e05ffab4214efc507fb38cbcae3b32d1777e54593bc07eca5a1204ea5c508a6566e76240543f8feb06fd457777be300005af3107a40000000000110270000000000001976a9148097f6fbaa0dfdfe4f064bb650324c5e8018242088acca331e00000000001976a914307f40d73e01af33364901d82d5614e370f905d388ac00000000"
 
-	tx, err := ParseTxInHex(txHex)
+	tx, err := parseTxInHex(txHex)
 	require.NoError(t, err)
 	require.Equal(t, int32(2), tx.Version)
 	require.Equal(t, uint32(0), tx.LockTime)
@@ -71,17 +71,17 @@ func TestParseTxInHex(t *testing.T) {
 
 func TestSignTxAndSerialize(t *testing.T) {
 	txHex := "020000000147c8c5a1f4d7d5e3846a7e945daf634722340f617be0ff8736e668d7ee7d9fb402000000644128fd33544f9530b1a8ae03340bdfe9385324adf0ecefc39d53e6fddf9afdb64ccf3ef12bc692045d87e90380919429d3c5bafc29b51515aa0a992dd0d085663e4121031c60b05831b6f3c31739856575cde27d97d9fe926a63d51abce4a0c16b4108be00000000030000000000000000666a04454754581456eb561cb6f98a985f80464fa99267a462c91bdb14e94358e473941de2d75d19fa330d607e05ffab4214efc507fb38cbcae3b32d1777e54593bc07eca5a1204ea5c508a6566e76240543f8feb06fd457777be300005af3107a40000000000110270000000000001976a9148097f6fbaa0dfdfe4f064bb650324c5e8018242088acca331e00000000001976a914307f40d73e01af33364901d82d5614e370f905d388ac00000000"
-	tx, err := ParseTxInHex(txHex)
+	tx, err := parseTxInHex(txHex)
 	require.NoError(t, err)
 
 	privKey, err := ecies.GenerateKey()
 	require.NoError(t, err)
 
-	signedTxHex, err := SignTxAndSerialize(*tx, PrivateKey{key: privKey})
+	signedTxHex, err := signTxAndSerialize(*tx, PrivateKey{key: privKey})
 	require.NoError(t, err)
 	fmt.Println(signedTxHex)
 
-	signedTx, err := ParseTxInHex(signedTxHex)
+	signedTx, err := parseTxInHex(signedTxHex)
 	require.NoError(t, err)
 	require.Equal(t, int32(2), signedTx.Version)
 	require.Equal(t, uint32(0), signedTx.LockTime)

@@ -56,6 +56,9 @@ func RegisterFunctions(vm *goja.Runtime) {
 	vm.Set("ZstdDecompress", ZstdDecompress)
 	vm.Set("VerifyMerkleProofSha256", VerifyMerkleProofSha256)
 	vm.Set("VerifyMerkleProofKeccak256", VerifyMerkleProofKeccak256)
+	vm.Set("HttpRequest", HttpRequest)
+	vm.Set("SignTxAndSerialize", SignTxAndSerialize)
+	vm.Set("ParseTxInHex", ParseTxInHex)
 }
 
 var (

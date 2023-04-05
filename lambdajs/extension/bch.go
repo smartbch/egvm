@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 
+	"github.com/dop251/goja"
 	"github.com/gcash/bchd/bchec"
 	"github.com/gcash/bchd/chaincfg/chainhash"
 	"github.com/gcash/bchd/txscript"
@@ -38,7 +39,15 @@ type TxOut struct {
 	HexDataElements []string // the pushed data in OP_RETURN, empty when it's P2PKH
 }
 
-func ParseTxInHex(hexStr string) (*BchTx, error) {
+func ParseTxInHex(hexStr string) BchTx {
+	tx, err := parseTxInHex(hexStr)
+	if err != nil {
+		panic(goja.NewSymbol("Error in ParseTxInHex: "+err.Error()))
+	}
+	return *tx
+}
+
+func parseTxInHex(hexStr string) (*BchTx, error) {
 	data, err := hex.DecodeString(hexStr)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode hex string: %w", err)
@@ -85,7 +94,15 @@ func ParseTxInHex(hexStr string) (*BchTx, error) {
 	}, nil
 }
 
-func SignTxAndSerialize(tx BchTx, privateKeys ...PrivateKey) (string, error) {
+func SignTxAndSerialize(tx BchTx, privateKeys ...PrivateKey) string {
+	hexStr, err := signTxAndSerialize(tx, privateKeys...)
+	if err != nil {
+		panic(goja.NewSymbol("Error in SignTxAndSerialize: "+err.Error()))
+	}
+	return hexStr
+}
+
+func signTxAndSerialize(tx BchTx, privateKeys ...PrivateKey) (string, error) {
 	if len(tx.TxIn) != len(privateKeys) {
 		return "", fmt.Errorf("length of tx inputs and private keys mismatch")
 	}

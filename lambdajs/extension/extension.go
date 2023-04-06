@@ -167,9 +167,9 @@ func AesGcmDecrypt(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
 	secret, nonce, ciphertext := getThreeArrayBuffers(f)
 	bz, err := aesgcmDecrypt(secret, nonce, ciphertext)
 	if err != nil {
-		panic(goja.NewSymbol("error in AesGcmDecrypt: "+err.Error()))
+		return vm.ToValue([2]any{nil, false})
 	}
-	return vm.ToValue(vm.NewArrayBuffer(bz))
+	return vm.ToValue([2]any{vm.NewArrayBuffer(bz), true})
 }
 
 // ===================================
@@ -308,9 +308,9 @@ func (prv PrivateKey) Decrypt(f goja.FunctionCall, vm *goja.Runtime) goja.Value 
 	buf := getOneArrayBuffer(f)
 	bz, err := ecies.Decrypt(prv.key, buf)
 	if err != nil {
-		panic(goja.NewSymbol("error in Decrypt: "+err.Error()))
+		return vm.ToValue([2]any{nil, false})
 	}
-	return vm.ToValue(vm.NewArrayBuffer(bz))
+	return vm.ToValue([2]any{vm.NewArrayBuffer(bz), true})
 }
 
 func (pub PublicKey) Encrypt(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
@@ -399,10 +399,7 @@ func (pub PublicKey) VrfVerify(f goja.FunctionCall, vm *goja.Runtime) goja.Value
 	return vm.ToValue(vm.NewArrayBuffer(beta[:]))
 }
 
-
 // ===============
-
-
 
 type Bip32Key struct {
 	key *bip32.Key

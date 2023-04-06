@@ -13,9 +13,11 @@ require (
 	github.com/holiman/uint256 v1.2.2
 	github.com/klauspost/compress v1.16.3
 	github.com/stretchr/testify v1.8.2
+	github.com/tinylib/msgp v1.0.2
 	github.com/tyler-smith/go-bip32 v1.0.0
 	github.com/vechain/go-ecvrf v0.0.0-20220525125849-96fa0442e765
 	golang.org/x/crypto v0.7.0
+	modernc.org/b/v2 v2.1.0
 )
 
 require (
@@ -28,6 +30,7 @@ require (
 	github.com/dlclark/regexp2 v1.7.0 // indirect
 	github.com/gcash/bchlog v0.0.0-20180913005452-b4f036f92fa6 // indirect
 	github.com/go-sourcemap/sourcemap v2.1.3+incompatible // indirect
+	github.com/philhofer/fwd v1.0.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	golang.org/x/sys v0.6.0 // indirect
 	golang.org/x/text v0.8.0 // indirect

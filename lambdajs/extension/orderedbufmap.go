@@ -50,7 +50,7 @@ type OrderedBufMap struct {
 }
 
 func NewOrderedBufMap() OrderedBufMap {
-	return OrderedBufMap{tree: b.TreeNew[string, []byte](func (a, b string) int {
+	return OrderedBufMap{tree: b.TreeNew[string, []byte](func(a, b string) int {
 		return strings.Compare(a, b)
 	})}
 }
@@ -142,27 +142,21 @@ func (m *OrderedBufMap) Set(f goja.FunctionCall, vm *goja.Runtime) {
 		} else {
 			m.estimatedSize += 10 + len(k) + len(v)
 		}
-		return v, true 
+		return v, true
 	})
 }
 
-func (m *OrderedBufMap) Seek(k string) (iter OrderedBufMapIter, ok bool) {
+func (m *OrderedBufMap) Seek(k string) (OrderedBufMapIter, bool) {
 	e, ok := m.tree.Seek(k)
 	return OrderedBufMapIter{e: e}, ok
 }
 
-func (m *OrderedBufMap) SeekFirst() (iter OrderedBufMapIter, err error) {
+func (m *OrderedBufMap) SeekFirst() (OrderedBufMapIter, error) {
 	e, err := m.tree.SeekFirst()
 	return OrderedBufMapIter{e: e}, err
 }
 
-func (m *OrderedBufMap) SeekLast() (iter OrderedBufMapIter, err error) {
-	e, err := m.tree.SeekFirst()
+func (m *OrderedBufMap) SeekLast() (OrderedBufMapIter, error) {
+	e, err := m.tree.SeekLast()
 	return OrderedBufMapIter{e: e}, err
 }
-
-
-
-
-
-

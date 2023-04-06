@@ -13,9 +13,9 @@ const (
 	OrderedBufMapTag = byte(2)
 )
 
-func SerializeMaps(f goja.FunctionCall, vm *goja.Runtime) goja.Value { 
+func SerializeMaps(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
 	totalSize := 0
-	for _, arg := range(f.Arguments) {
+	for _, arg := range f.Arguments {
 		switch v := arg.Export().(type) {
 		case *OrderedIntMap:
 			totalSize += 2 + v.estimatedSize
@@ -28,7 +28,7 @@ func SerializeMaps(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
 		}
 	}
 	b := make([]byte, 0, totalSize)
-	for _, arg := range(f.Arguments) {
+	for _, arg := range f.Arguments {
 		switch v := arg.Export().(type) {
 		case *OrderedIntMap:
 			b = msgp.AppendByte(b, OrderedIntMapTag)
@@ -44,13 +44,13 @@ func SerializeMaps(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
 	return vm.ToValue(vm.NewArrayBuffer(b))
 }
 
-func DeserializeMaps(f goja.FunctionCall, vm *goja.Runtime) goja.Value { 
+func DeserializeMaps(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
 	b := getOneArrayBuffer(f)
 	var result []any
 	for i := 0; len(b) != 0; i++ {
 		tag, b, err := msgp.ReadByteBytes(b)
 		if err != nil || tag > OrderedBufMapTag {
-			panic(goja.NewSymbol("Tag byte error in DeserializeMaps "+err.Error()))
+			panic(goja.NewSymbol("Tag byte error in DeserializeMaps " + err.Error()))
 		}
 		if tag == OrderedIntMapTag {
 			m := NewOrderedIntMap()
@@ -71,4 +71,3 @@ func DeserializeMaps(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
 	}
 	return vm.ToValue(result)
 }
-

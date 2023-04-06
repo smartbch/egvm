@@ -1,6 +1,7 @@
 package extension
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/dop251/goja"
@@ -25,7 +26,7 @@ func (iter OrderedIntMapIter) Next() (string, int64) {
 }
 
 func (iter OrderedIntMapIter) Prev() (string, int64) {
-	k, v, err := iter.e.Next()
+	k, v, err := iter.e.Prev()
 	if err != nil {
 		return "", 0
 	}
@@ -38,7 +39,7 @@ type OrderedIntMap struct {
 }
 
 func NewOrderedIntMap() OrderedIntMap {
-	return OrderedIntMap{tree: b.TreeNew[string, int64](func (a, b string) int {
+	return OrderedIntMap{tree: b.TreeNew[string, int64](func(a, b string) int {
 		return strings.Compare(a, b)
 	})}
 }
@@ -92,7 +93,7 @@ func (m *OrderedIntMap) Delete(k string) {
 	}
 }
 
-func (m *OrderedIntMap) Get(k string) (v int64, ok bool) {
+func (m *OrderedIntMap) Get(k string) (int64, bool) {
 	return m.tree.Get(k)
 }
 
@@ -104,31 +105,32 @@ func (m *OrderedIntMap) Set(k string, v int64) {
 	if len(k) == 0 {
 		panic(goja.NewSymbol("Empty key string"))
 	}
-	m.tree.Put(k, func(_ int64, exists bool) (newV int64, write bool) {
+
+	m.tree.Put(k, func(_ int64, exists bool) (int64, bool) {
 		if !exists {
 			m.estimatedSize += 10 + len(k)
 		}
-		return v, true 
+		return v, true
 	})
 }
 
-func (m *OrderedIntMap) Seek(k string) (iter OrderedIntMapIter, ok bool) {
+func (m *OrderedIntMap) Seek(k string) (OrderedIntMapIter, bool) {
 	e, ok := m.tree.Seek(k)
 	return OrderedIntMapIter{e: e}, ok
 }
 
-func (m *OrderedIntMap) SeekFirst() (iter OrderedIntMapIter, err error) {
+func (m *OrderedIntMap) SeekFirst() (OrderedIntMapIter, error) {
 	e, err := m.tree.SeekFirst()
+	if err != nil {
+		fmt.Printf("err: %v\n", err)
+	}
 	return OrderedIntMapIter{e: e}, err
 }
 
-func (m *OrderedIntMap) SeekLast() (iter OrderedIntMapIter, err error) {
-	e, err := m.tree.SeekFirst()
+func (m *OrderedIntMap) SeekLast() (OrderedIntMapIter, error) {
+	e, err := m.tree.SeekLast()
+	if err != nil {
+		fmt.Printf("err: %v\n", err)
+	}
 	return OrderedIntMapIter{e: e}, err
 }
-
-
-
-
-
-

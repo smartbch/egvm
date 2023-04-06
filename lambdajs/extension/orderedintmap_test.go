@@ -1,0 +1,243 @@
+package extension
+
+import (
+	"testing"
+
+	"github.com/dop251/goja"
+	"github.com/stretchr/testify/require"
+)
+
+const (
+	OrderedIntMapCRUDScriptTemplate = `
+		let m = NewOrderedIntMap()
+		const [v1, ok1] = m.Get('a')
+		const len1 = m.Len()
+
+		m.Set('a', 1)
+		m.Set('b', 2)
+		m.Set('c', 3)
+		m.Set('c', 4)
+		const [v2, ok2] = m.Get('c')
+		const len2 = m.Len()
+
+		m.Delete('b')
+		const [v3, ok3] = m.Get('b')
+		const len3 = m.Len()
+	`
+
+	OrderedIntMapGetOrDeleteEmptyKeyScriptTemplate = `
+		let m = NewOrderedIntMap()
+		const [v1, ok1] = m.Get('')
+		const len1 = m.Len()
+
+		m.Delete('')
+		const len2 = m.Len()
+	`
+
+	OrderedIntMapSetEmptyKeyScriptTemplate = `
+		let m = NewOrderedIntMap()
+		m.Set('')
+	`
+
+	OrderedIntMapSeekScriptTemplate = `
+		let m = NewOrderedIntMap()
+		m.Set('a', 1)
+		m.Set('b', 2)
+		m.Set('c', 3)
+		m.Set('d', 4)
+		m.Set('e', 5)
+
+		const [it1, ok1] = m.Seek('c')
+		const [k1, v1] = it1.Prev()
+		const [k2, v2] = it1.Prev()
+		const [k3, v3] = it1.Prev()
+
+		const [it2, ok2] = m.Seek('c')
+		const [k4, v4] = it2.Next()
+		const [k5, v5] = it2.Next()
+		const [k6, v6] = it2.Next()
+	`
+
+	OrderedIntMapSeekFirstAndLastScriptTemplate = `
+		let m = NewOrderedIntMap()
+		m.Set('a', 1)
+		m.Set('b', 2)
+		m.Set('c', 3)
+		m.Set('d', 4)
+		m.Set('e', 5)
+
+		const [it1, err1] = m.SeekFirst()
+		const [k1, v1] = it1.Next()
+		const [k2, v2] = it1.Next()
+		const [k3, v3] = it1.Next()
+		const [k4, v4] = it1.Next()
+		const [k5, v5] = it1.Next()
+	`
+)
+
+func setupGojaVmForOrderedIntMap() *goja.Runtime {
+	vm := goja.New()
+
+	vm.Set("NewOrderedIntMap", NewOrderedIntMap)
+	return vm
+}
+
+func TestOrderedIntMapCRUD(t *testing.T) {
+	vm := setupGojaVmForOrderedIntMap()
+	_, err := vm.RunString(OrderedIntMapCRUDScriptTemplate)
+	require.NoError(t, err)
+
+	// 1. get non-existed key
+	ok1 := vm.Get("ok1").Export().(bool)
+	v1 := vm.Get("v1").Export().(int64)
+	len1 := vm.Get("len1").Export().(int64)
+	require.False(t, ok1)
+	require.EqualValues(t, 0, v1)
+	require.EqualValues(t, 0, len1)
+
+	// 2. set and get keys
+	ok2 := vm.Get("ok2").Export().(bool)
+	v2 := vm.Get("v2").Export().(int64)
+	len2 := vm.Get("len2").Export().(int64)
+	require.True(t, ok2)
+	require.EqualValues(t, 4, v2)
+	require.EqualValues(t, 3, len2)
+
+	// 3. delete key
+	ok3 := vm.Get("ok3").Export().(bool)
+	v3 := vm.Get("v3").Export().(int64)
+	len3 := vm.Get("len3").Export().(int64)
+	require.False(t, ok3)
+	require.EqualValues(t, 0, v3)
+	require.EqualValues(t, 2, len3)
+}
+
+func TestOrderedIntMapGetOrDeleteEmptyKey(t *testing.T) {
+	vm := setupGojaVmForOrderedIntMap()
+	_, err := vm.RunString(OrderedIntMapGetOrDeleteEmptyKeyScriptTemplate)
+	require.NoError(t, err)
+
+	len1 := vm.Get("len1").Export().(int64)
+	len2 := vm.Get("len2").Export().(int64)
+	require.EqualValues(t, 0, len1)
+	require.EqualValues(t, 0, len2)
+}
+
+func TestOrderedIntMapSetEmptyKey(t *testing.T) {
+	vm := setupGojaVmForOrderedIntMap()
+	_, err := vm.RunString(OrderedIntMapSetEmptyKeyScriptTemplate)
+	require.Error(t, err, "Empty key string")
+}
+
+func TestOrderedIntMapSeek(t *testing.T) {
+	vm := setupGojaVmForOrderedIntMap()
+	_, err := vm.RunString(OrderedIntMapSeekScriptTemplate)
+	require.NoError(t, err)
+
+	ok1 := vm.Get("ok1").Export().(bool)
+	ok2 := vm.Get("ok2").Export().(bool)
+	require.True(t, ok1)
+	require.True(t, ok2)
+
+	k1 := vm.Get("k1").Export().(string)
+	v1 := vm.Get("v1").Export().(int64)
+	k2 := vm.Get("k2").Export().(string)
+	v2 := vm.Get("v2").Export().(int64)
+	k3 := vm.Get("k3").Export().(string)
+	v3 := vm.Get("v3").Export().(int64)
+	require.EqualValues(t, "c", k1)
+	require.EqualValues(t, 3, v1)
+	require.EqualValues(t, "b", k2)
+	require.EqualValues(t, 2, v2)
+	require.EqualValues(t, "a", k3)
+	require.EqualValues(t, 1, v3)
+
+	k4 := vm.Get("k4").Export().(string)
+	v4 := vm.Get("v4").Export().(int64)
+	k5 := vm.Get("k5").Export().(string)
+	v5 := vm.Get("v5").Export().(int64)
+	k6 := vm.Get("k6").Export().(string)
+	v6 := vm.Get("v6").Export().(int64)
+	require.EqualValues(t, "c", k4)
+	require.EqualValues(t, 3, v4)
+	require.EqualValues(t, "d", k5)
+	require.EqualValues(t, 4, v5)
+	require.EqualValues(t, "e", k6)
+	require.EqualValues(t, 5, v6)
+}
+
+// FIXME: solve this test function
+func TestOrderedIntMapSeekFirstAndLast(t *testing.T) {
+	vm := setupGojaVmForOrderedIntMap()
+	_, err := vm.RunString(OrderedIntMapSeekFirstAndLastScriptTemplate)
+	require.NoError(t, err)
+
+	err1 := vm.Get("err1").Export().(error)
+	require.Nil(t, err1)
+
+	k1 := vm.Get("k1").Export().(string)
+	v1 := vm.Get("v1").Export().(int64)
+	k2 := vm.Get("k2").Export().(string)
+	v2 := vm.Get("v2").Export().(int64)
+	k3 := vm.Get("k3").Export().(string)
+	v3 := vm.Get("v3").Export().(int64)
+	k4 := vm.Get("k4").Export().(string)
+	v4 := vm.Get("v4").Export().(int64)
+	k5 := vm.Get("k5").Export().(string)
+	v5 := vm.Get("v5").Export().(int64)
+	require.EqualValues(t, "a", k1)
+	require.EqualValues(t, 1, v1)
+	require.EqualValues(t, "b", k2)
+	require.EqualValues(t, 2, v2)
+	require.EqualValues(t, "c", k3)
+	require.EqualValues(t, 3, v3)
+	require.EqualValues(t, "d", k4)
+	require.EqualValues(t, 4, v4)
+	require.EqualValues(t, "e", k5)
+	require.EqualValues(t, 5, v5)
+}
+
+func TestSSS(t *testing.T) {
+	m := NewOrderedIntMap()
+	m.Set("a", 1)
+	m.Set("b", 2)
+	m.Set("c", 3)
+	m.Set("d", 4)
+	m.Set("e", 5)
+
+	it1, _ := m.SeekFirst()
+	k1, v1 := it1.Next()
+	k2, v2 := it1.Next()
+	k3, v3 := it1.Next()
+	k4, v4 := it1.Next()
+	k5, v5 := it1.Next()
+
+	require.EqualValues(t, "a", k1)
+	require.EqualValues(t, 1, v1)
+	require.EqualValues(t, "b", k2)
+	require.EqualValues(t, 2, v2)
+	require.EqualValues(t, "c", k3)
+	require.EqualValues(t, 3, v3)
+	require.EqualValues(t, "d", k4)
+	require.EqualValues(t, 4, v4)
+	require.EqualValues(t, "e", k5)
+	require.EqualValues(t, 5, v5)
+
+	it2, _ := m.SeekLast()
+	k6, v6 := it2.Prev()
+	k7, v7 := it2.Prev()
+	k8, v8 := it2.Prev()
+	k9, v9 := it2.Prev()
+	k10, v10 := it2.Prev()
+
+	require.EqualValues(t, "e", k6)
+	require.EqualValues(t, 5, v6)
+	require.EqualValues(t, "d", k7)
+	require.EqualValues(t, 4, v7)
+	require.EqualValues(t, "c", k8)
+	require.EqualValues(t, 3, v8)
+	require.EqualValues(t, "b", k9)
+	require.EqualValues(t, 2, v9)
+	require.EqualValues(t, "a", k10)
+	require.EqualValues(t, 1, v10)
+}

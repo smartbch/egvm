@@ -25,7 +25,7 @@ func (iter OrderedStrMapIter) Next() (string, string) {
 }
 
 func (iter OrderedStrMapIter) Prev() (string, string) {
-	k, v, err := iter.e.Next()
+	k, v, err := iter.e.Prev()
 	if err != nil {
 		return "", ""
 	}
@@ -38,7 +38,7 @@ type OrderedStrMap struct {
 }
 
 func NewOrderedStrMap() OrderedStrMap {
-	return OrderedStrMap{tree: b.TreeNew[string, string](func (a, b string) int {
+	return OrderedStrMap{tree: b.TreeNew[string, string](func(a, b string) int {
 		return strings.Compare(a, b)
 	})}
 }
@@ -92,7 +92,7 @@ func (m *OrderedStrMap) Delete(k string) {
 	}
 }
 
-func (m *OrderedStrMap) Get(k string) (v string, ok bool) {
+func (m *OrderedStrMap) Get(k string) (string, bool) {
 	return m.tree.Get(k)
 }
 
@@ -110,27 +110,21 @@ func (m *OrderedStrMap) Set(k string, v string) {
 		} else {
 			m.estimatedSize += 10 + len(k) + len(v)
 		}
-		return v, true 
+		return v, true
 	})
 }
 
-func (m *OrderedStrMap) Seek(k string) (iter OrderedStrMapIter, ok bool) {
+func (m *OrderedStrMap) Seek(k string) (OrderedStrMapIter, bool) {
 	e, ok := m.tree.Seek(k)
 	return OrderedStrMapIter{e: e}, ok
 }
 
-func (m *OrderedStrMap) SeekFirst() (iter OrderedStrMapIter, err error) {
+func (m *OrderedStrMap) SeekFirst() (OrderedStrMapIter, error) {
 	e, err := m.tree.SeekFirst()
 	return OrderedStrMapIter{e: e}, err
 }
 
-func (m *OrderedStrMap) SeekLast() (iter OrderedStrMapIter, err error) {
-	e, err := m.tree.SeekFirst()
+func (m *OrderedStrMap) SeekLast() (OrderedStrMapIter, error) {
+	e, err := m.tree.SeekLast()
 	return OrderedStrMapIter{e: e}, err
 }
-
-
-
-
-
-

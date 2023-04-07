@@ -120,22 +120,12 @@ func (m *OrderedBufMap) Len() int {
 	return m.tree.Len()
 }
 
-func (m *OrderedBufMap) Set(f goja.FunctionCall, vm *goja.Runtime) {
-	if len(f.Arguments) != 2 {
-		panic(IncorrectArgumentCount)
-	}
-	k, ok := f.Arguments[0].Export().(string)
-	if !ok {
-		panic(goja.NewSymbol("The first argument must be string"))
-	}
-	buf, ok := f.Arguments[1].Export().(goja.ArrayBuffer)
-	if !ok {
-		panic(goja.NewSymbol("The first argument must be ArrayBuffer"))
-	}
-	v := buf.Bytes()
+func (m *OrderedBufMap) Set(k string, buf goja.ArrayBuffer) {
 	if len(k) == 0 {
 		panic(goja.NewSymbol("Empty key string"))
 	}
+
+	v := buf.Bytes()
 	m.tree.Put(k, func(oldV []byte, exists bool) (newV []byte, write bool) {
 		if exists {
 			m.estimatedSize += len(v) - len(oldV)

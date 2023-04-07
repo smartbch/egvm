@@ -36,7 +36,7 @@ const (
 
 	OrderedIntMapSetEmptyKeyScriptTemplate = `
 		let m = NewOrderedIntMap()
-		m.Set('')
+		m.Set('', 1)
 	`
 
 	OrderedIntMapSeekScriptTemplate = `

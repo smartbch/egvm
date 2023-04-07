@@ -1,7 +1,6 @@
 package extension
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/dop251/goja"
@@ -122,7 +121,7 @@ func (m *OrderedIntMap) Seek(k string) (OrderedIntMapIter, bool) {
 func (m *OrderedIntMap) SeekFirst() (OrderedIntMapIter, error) {
 	e, err := m.tree.SeekFirst()
 	if err != nil {
-		fmt.Printf("err: %v\n", err)
+		panic(goja.NewSymbol("SeekFirst Error: " + err.Error()))
 	}
 	return OrderedIntMapIter{e: e}, err
 }
@@ -130,7 +129,7 @@ func (m *OrderedIntMap) SeekFirst() (OrderedIntMapIter, error) {
 func (m *OrderedIntMap) SeekLast() (OrderedIntMapIter, error) {
 	e, err := m.tree.SeekLast()
 	if err != nil {
-		fmt.Printf("err: %v\n", err)
+		panic(goja.NewSymbol("SeekFirst Error: " + err.Error()))
 	}
 	return OrderedIntMapIter{e: e}, err
 }

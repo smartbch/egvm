@@ -104,7 +104,7 @@ func (m *OrderedStrMap) Set(k string, v string) {
 	if len(k) == 0 {
 		panic(goja.NewSymbol("Empty key string"))
 	}
-	m.tree.Put(k, func(oldV string, exists bool) (newV string, write bool) {
+	m.tree.Put(k, func(oldV string, exists bool) (string, bool) {
 		if exists {
 			m.estimatedSize += len(v) - len(oldV)
 		} else {

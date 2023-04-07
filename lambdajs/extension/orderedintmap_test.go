@@ -70,7 +70,7 @@ const (
 		m.Set('d', 4)
 		m.Set('e', 5)
 
-		const [it1, err1] = m.SeekFirst()
+		const it1 = m.SeekFirst()
 		const [k1, v1] = it1.Next()
 		const [k2, v2] = it1.Next()
 		const [k3, v3] = it1.Next()
@@ -198,9 +198,6 @@ func TestOrderedIntMapSeekFirstAndLast(t *testing.T) {
 	vm := setupGojaVmForOrderedIntMap()
 	_, err := vm.RunString(OrderedIntMapSeekFirstAndLastScriptTemplate)
 	require.NoError(t, err)
-
-	err1 := vm.Get("err1").Export().(error)
-	require.Nil(t, err1)
 
 	k1 := vm.Get("k1").Export().(string)
 	v1 := vm.Get("v1").Export().(int64)

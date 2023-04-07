@@ -120,16 +120,10 @@ func (m *OrderedIntMap) Seek(k string) (OrderedIntMapIter, bool) {
 
 func (m *OrderedIntMap) SeekFirst() (OrderedIntMapIter, error) {
 	e, err := m.tree.SeekFirst()
-	if err != nil {
-		panic(goja.NewSymbol("SeekFirst Error: " + err.Error()))
-	}
 	return OrderedIntMapIter{e: e}, err
 }
 
 func (m *OrderedIntMap) SeekLast() (OrderedIntMapIter, error) {
 	e, err := m.tree.SeekLast()
-	if err != nil {
-		panic(goja.NewSymbol("SeekFirst Error: " + err.Error()))
-	}
 	return OrderedIntMapIter{e: e}, err
 }

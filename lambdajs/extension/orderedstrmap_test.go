@@ -77,6 +77,22 @@ const (
 		const [k4, v4] = it1.Next()
 		const [k5, v5] = it1.Next()
 	`
+
+	OrderedStrMapClearScriptTemplate = `
+		let m = NewOrderedStrMap()
+		m.Set('a', 'a')
+		m.Set('b', 'b')
+		m.Set('c', 'c')
+		m.Set('d', 'd')
+		m.Set('e', 'e')
+
+		m.Clear()
+		const len1 = m.Len()
+
+		m.Set('e', 'e')
+		m.Clear()
+		const len2 = m.Len()
+	`
 )
 
 func setupGojaVmForOrderedStrMap() *goja.Runtime {
@@ -176,4 +192,15 @@ func TestOrderedStrMapSeek(t *testing.T) {
 	require.EqualValues(t, "e", v7)
 	require.EqualValues(t, "", k8)
 	require.EqualValues(t, "", v8)
+}
+
+func TestOrderedStrMapClear(t *testing.T) {
+	vm := setupGojaVmForOrderedStrMap()
+	_, err := vm.RunString(OrderedStrMapClearScriptTemplate)
+	require.NoError(t, err)
+
+	len1 := vm.Get("len1").Export().(int64)
+	len2 := vm.Get("len2").Export().(int64)
+	require.EqualValues(t, 0, len1)
+	require.EqualValues(t, 0, len2)
 }

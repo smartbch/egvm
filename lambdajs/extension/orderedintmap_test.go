@@ -77,6 +77,21 @@ const (
 		const [k4, v4] = it1.Next()
 		const [k5, v5] = it1.Next()
 	`
+
+	OrderedIntMapClearScriptTemplate = `
+		let m = NewOrderedIntMap()
+		m.Set('a', 1)
+		m.Set('b', 2)
+		m.Set('c', 3)
+		m.Set('d', 4)
+		m.Set('e', 5)
+		m.Clear()
+		const len1 = m.Len()
+
+		m.Set('e', 5)
+		m.Clear()
+		const len2 = m.Len()
+	`
 )
 
 func setupGojaVmForOrderedIntMap() *goja.Runtime {
@@ -252,4 +267,15 @@ func TestSSS(t *testing.T) {
 	require.EqualValues(t, 2, v9)
 	require.EqualValues(t, "a", k10)
 	require.EqualValues(t, 1, v10)
+}
+
+func TestOrderedIntMapClear(t *testing.T) {
+	vm := setupGojaVmForOrderedIntMap()
+	_, err := vm.RunString(OrderedIntMapClearScriptTemplate)
+	require.NoError(t, err)
+
+	len1 := vm.Get("len1").Export().(int64)
+	len2 := vm.Get("len2").Export().(int64)
+	require.EqualValues(t, 0, len1)
+	require.EqualValues(t, 0, len2)
 }

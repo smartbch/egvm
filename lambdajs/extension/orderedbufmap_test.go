@@ -106,6 +106,41 @@ const (
 		const [k4, v4] = it1.Next()
 		const [k5, v5] = it1.Next()
 	`
+
+	OrderedBufMapClearScriptTemplate = `
+		let m = NewOrderedBufMap()
+
+		let buffer1 = new ArrayBuffer(8); // 8 bytes
+		let buffer2 = new ArrayBuffer(8); // 8 bytes
+		let buffer3 = new ArrayBuffer(8); // 8 bytes
+		let buffer4 = new ArrayBuffer(8); // 8 bytes
+		let buffer5 = new ArrayBuffer(8); // 8 bytes
+		let view1 = new Uint8Array(buffer1);
+		view1[7] = 1
+		let view2 = new Uint8Array(buffer2);
+		view2[7] = 2
+		let view3 = new Uint8Array(buffer3);
+		view3[7] = 3
+		let view4 = new Uint8Array(buffer4);
+		view4[7] = 4
+		let view5 = new Uint8Array(buffer5);
+		view5[7] = 5
+
+
+		m.Set('a', buffer1)
+		m.Set('b', buffer2)
+		m.Set('c', buffer3)
+		m.Set('d', buffer4)
+		m.Set('e', buffer5)
+
+
+		m.Clear()
+		const len1 = m.Len()
+
+		m.Set('e', buffer5)
+		m.Clear()
+		const len2 = m.Len()
+	`
 )
 
 func setupGojaVmForOrderedBufMap() *goja.Runtime {
@@ -214,4 +249,15 @@ func TestOrderedBufMapSeek(t *testing.T) {
 	require.EqualValues(t, "0000000000000005", v7Hex)
 	require.EqualValues(t, "", k8)
 	require.False(t, ok8)
+}
+
+func TestOrderedBufMapClear(t *testing.T) {
+	vm := setupGojaVmForOrderedBufMap()
+	_, err := vm.RunString(OrderedBufMapClearScriptTemplate)
+	require.NoError(t, err)
+
+	len1 := vm.Get("len1").Export().(int64)
+	len2 := vm.Get("len2").Export().(int64)
+	require.EqualValues(t, 0, len1)
+	require.EqualValues(t, 0, len2)
 }

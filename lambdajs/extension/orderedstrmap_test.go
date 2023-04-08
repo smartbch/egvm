@@ -64,18 +64,27 @@ const (
 
 	OrderedStrMapSeekFirstAndLastScriptTemplate = `
 		let m = NewOrderedStrMap()
-		m.Set('a', 1)
-		m.Set('b', 2)
-		m.Set('c', 3)
-		m.Set('d', 4)
-		m.Set('e', 5)
+		m.Set('a', 'a')
+		m.Set('b', 'b')
+		m.Set('c', 'c')
+		m.Set('d', 'd')
+		m.Set('e', 'e')
 
-		const [it1, err1] = m.SeekFirst()
+		const it1 = m.SeekFirst()
 		const [k1, v1] = it1.Next()
 		const [k2, v2] = it1.Next()
 		const [k3, v3] = it1.Next()
 		const [k4, v4] = it1.Next()
 		const [k5, v5] = it1.Next()
+		it1.Close()
+
+		const it2 = m.SeekLast()
+		const [k6, v6] = it2.Prev()
+		const [k7, v7] = it2.Prev()
+		const [k8, v8] = it2.Prev()
+		const [k9, v9] = it2.Prev()
+		const [k10, v10] = it2.Prev()
+		it2.Close()
 	`
 
 	OrderedStrMapClearScriptTemplate = `
@@ -192,6 +201,54 @@ func TestOrderedStrMapSeek(t *testing.T) {
 	require.EqualValues(t, "e", v7)
 	require.EqualValues(t, "", k8)
 	require.EqualValues(t, "", v8)
+}
+
+func TestOrderedStrMapSeekFirstAndLast(t *testing.T) {
+	vm := setupGojaVmForOrderedStrMap()
+	_, err := vm.RunString(OrderedStrMapSeekFirstAndLastScriptTemplate)
+	require.NoError(t, err)
+
+	k1 := vm.Get("k1").Export().(string)
+	v1 := vm.Get("v1").Export().(string)
+	k2 := vm.Get("k2").Export().(string)
+	v2 := vm.Get("v2").Export().(string)
+	k3 := vm.Get("k3").Export().(string)
+	v3 := vm.Get("v3").Export().(string)
+	k4 := vm.Get("k4").Export().(string)
+	v4 := vm.Get("v4").Export().(string)
+	k5 := vm.Get("k5").Export().(string)
+	v5 := vm.Get("v5").Export().(string)
+	require.EqualValues(t, "a", k1)
+	require.EqualValues(t, "a", v1)
+	require.EqualValues(t, "b", k2)
+	require.EqualValues(t, "b", v2)
+	require.EqualValues(t, "c", k3)
+	require.EqualValues(t, "c", v3)
+	require.EqualValues(t, "d", k4)
+	require.EqualValues(t, "d", v4)
+	require.EqualValues(t, "e", k5)
+	require.EqualValues(t, "e", v5)
+
+	k6 := vm.Get("k6").Export().(string)
+	v6 := vm.Get("v6").Export().(string)
+	k7 := vm.Get("k7").Export().(string)
+	v7 := vm.Get("v7").Export().(string)
+	k8 := vm.Get("k8").Export().(string)
+	v8 := vm.Get("v8").Export().(string)
+	k9 := vm.Get("k9").Export().(string)
+	v9 := vm.Get("v9").Export().(string)
+	k10 := vm.Get("k10").Export().(string)
+	v10 := vm.Get("v10").Export().(string)
+	require.EqualValues(t, "e", k6)
+	require.EqualValues(t, "e", v6)
+	require.EqualValues(t, "d", k7)
+	require.EqualValues(t, "d", v7)
+	require.EqualValues(t, "c", k8)
+	require.EqualValues(t, "c", v8)
+	require.EqualValues(t, "b", k9)
+	require.EqualValues(t, "b", v9)
+	require.EqualValues(t, "a", k10)
+	require.EqualValues(t, "a", v10)
 }
 
 func TestOrderedStrMapClear(t *testing.T) {

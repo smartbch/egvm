@@ -93,18 +93,45 @@ const (
 
 	OrderedBufMapSeekFirstAndLastScriptTemplate = `
 		let m = NewOrderedBufMap()
-		m.Set('a', 1)
-		m.Set('b', 2)
-		m.Set('c', 3)
-		m.Set('d', 4)
-		m.Set('e', 5)
 
-		const [it1, err1] = m.SeekFirst()
+		let buffer1 = new ArrayBuffer(8); // 8 bytes
+		let buffer2 = new ArrayBuffer(8); // 8 bytes
+		let buffer3 = new ArrayBuffer(8); // 8 bytes
+		let buffer4 = new ArrayBuffer(8); // 8 bytes
+		let buffer5 = new ArrayBuffer(8); // 8 bytes
+		let view1 = new Uint8Array(buffer1);
+		view1[7] = 1
+		let view2 = new Uint8Array(buffer2);
+		view2[7] = 2
+		let view3 = new Uint8Array(buffer3);
+		view3[7] = 3
+		let view4 = new Uint8Array(buffer4);
+		view4[7] = 4
+		let view5 = new Uint8Array(buffer5);
+		view5[7] = 5
+
+
+		m.Set('a', buffer1)
+		m.Set('b', buffer2)
+		m.Set('c', buffer3)
+		m.Set('d', buffer4)
+		m.Set('e', buffer5)
+
+		const it1 = m.SeekFirst()
 		const [k1, v1] = it1.Next()
 		const [k2, v2] = it1.Next()
 		const [k3, v3] = it1.Next()
 		const [k4, v4] = it1.Next()
 		const [k5, v5] = it1.Next()
+		it1.Close()
+
+		const it2 = m.SeekLast()
+		const [k6, v6] = it2.Prev()
+		const [k7, v7] = it2.Prev()
+		const [k8, v8] = it2.Prev()
+		const [k9, v9] = it2.Prev()
+		const [k10, v10] = it2.Prev()
+		it2.Close()
 	`
 
 	OrderedBufMapClearScriptTemplate = `
@@ -249,6 +276,64 @@ func TestOrderedBufMapSeek(t *testing.T) {
 	require.EqualValues(t, "0000000000000005", v7Hex)
 	require.EqualValues(t, "", k8)
 	require.False(t, ok8)
+}
+
+func TestOrderedBufMapSeekFirstAndLast(t *testing.T) {
+	vm := setupGojaVmForOrderedBufMap()
+	_, err := vm.RunString(OrderedBufMapSeekFirstAndLastScriptTemplate)
+	require.NoError(t, err)
+
+	k1 := vm.Get("k1").Export().(string)
+	v1 := vm.Get("v1").Export().(goja.ArrayBuffer)
+	v1Hex := gethcmn.Bytes2Hex(v1.Bytes())
+	k2 := vm.Get("k2").Export().(string)
+	v2 := vm.Get("v2").Export().(goja.ArrayBuffer)
+	v2Hex := gethcmn.Bytes2Hex(v2.Bytes())
+	k3 := vm.Get("k3").Export().(string)
+	v3 := vm.Get("v3").Export().(goja.ArrayBuffer)
+	v3Hex := gethcmn.Bytes2Hex(v3.Bytes())
+	k4 := vm.Get("k4").Export().(string)
+	v4 := vm.Get("v4").Export().(goja.ArrayBuffer)
+	v4Hex := gethcmn.Bytes2Hex(v4.Bytes())
+	k5 := vm.Get("k5").Export().(string)
+	v5 := vm.Get("v5").Export().(goja.ArrayBuffer)
+	v5Hex := gethcmn.Bytes2Hex(v5.Bytes())
+	require.EqualValues(t, "a", k1)
+	require.EqualValues(t, "0000000000000001", v1Hex)
+	require.EqualValues(t, "b", k2)
+	require.EqualValues(t, "0000000000000002", v2Hex)
+	require.EqualValues(t, "c", k3)
+	require.EqualValues(t, "0000000000000003", v3Hex)
+	require.EqualValues(t, "d", k4)
+	require.EqualValues(t, "0000000000000004", v4Hex)
+	require.EqualValues(t, "e", k5)
+	require.EqualValues(t, "0000000000000005", v5Hex)
+
+	k6 := vm.Get("k6").Export().(string)
+	v6 := vm.Get("v6").Export().(goja.ArrayBuffer)
+	v6Hex := gethcmn.Bytes2Hex(v6.Bytes())
+	k7 := vm.Get("k7").Export().(string)
+	v7 := vm.Get("v7").Export().(goja.ArrayBuffer)
+	v7Hex := gethcmn.Bytes2Hex(v7.Bytes())
+	k8 := vm.Get("k8").Export().(string)
+	v8 := vm.Get("v8").Export().(goja.ArrayBuffer)
+	v8Hex := gethcmn.Bytes2Hex(v8.Bytes())
+	k9 := vm.Get("k9").Export().(string)
+	v9 := vm.Get("v9").Export().(goja.ArrayBuffer)
+	v9Hex := gethcmn.Bytes2Hex(v9.Bytes())
+	k10 := vm.Get("k10").Export().(string)
+	v10 := vm.Get("v10").Export().(goja.ArrayBuffer)
+	v10Hex := gethcmn.Bytes2Hex(v10.Bytes())
+	require.EqualValues(t, "e", k6)
+	require.EqualValues(t, "0000000000000005", v6Hex)
+	require.EqualValues(t, "d", k7)
+	require.EqualValues(t, "0000000000000004", v7Hex)
+	require.EqualValues(t, "c", k8)
+	require.EqualValues(t, "0000000000000003", v8Hex)
+	require.EqualValues(t, "b", k9)
+	require.EqualValues(t, "0000000000000002", v9Hex)
+	require.EqualValues(t, "a", k10)
+	require.EqualValues(t, "0000000000000001", v10Hex)
 }
 
 func TestOrderedBufMapClear(t *testing.T) {

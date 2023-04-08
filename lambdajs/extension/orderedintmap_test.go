@@ -76,6 +76,15 @@ const (
 		const [k3, v3] = it1.Next()
 		const [k4, v4] = it1.Next()
 		const [k5, v5] = it1.Next()
+		it1.Close()
+
+		const it2 = m.SeekLast()
+		const [k6, v6] = it2.Prev()
+		const [k7, v7] = it2.Prev()
+		const [k8, v8] = it2.Prev()
+		const [k9, v9] = it2.Prev()
+		const [k10, v10] = it2.Prev()
+		it2.Close()
 	`
 
 	OrderedIntMapClearScriptTemplate = `
@@ -193,7 +202,6 @@ func TestOrderedIntMapSeek(t *testing.T) {
 	require.EqualValues(t, 0, v8)
 }
 
-// FIXME: solve this test function
 func TestOrderedIntMapSeekFirstAndLast(t *testing.T) {
 	vm := setupGojaVmForOrderedIntMap()
 	_, err := vm.RunString(OrderedIntMapSeekFirstAndLastScriptTemplate)
@@ -219,41 +227,17 @@ func TestOrderedIntMapSeekFirstAndLast(t *testing.T) {
 	require.EqualValues(t, 4, v4)
 	require.EqualValues(t, "e", k5)
 	require.EqualValues(t, 5, v5)
-}
 
-func TestSSS(t *testing.T) {
-	m := NewOrderedIntMap()
-	m.Set("a", 1)
-	m.Set("b", 2)
-	m.Set("c", 3)
-	m.Set("d", 4)
-	m.Set("e", 5)
-
-	it1, _ := m.SeekFirst()
-	k1, v1 := it1.Next()
-	k2, v2 := it1.Next()
-	k3, v3 := it1.Next()
-	k4, v4 := it1.Next()
-	k5, v5 := it1.Next()
-
-	require.EqualValues(t, "a", k1)
-	require.EqualValues(t, 1, v1)
-	require.EqualValues(t, "b", k2)
-	require.EqualValues(t, 2, v2)
-	require.EqualValues(t, "c", k3)
-	require.EqualValues(t, 3, v3)
-	require.EqualValues(t, "d", k4)
-	require.EqualValues(t, 4, v4)
-	require.EqualValues(t, "e", k5)
-	require.EqualValues(t, 5, v5)
-
-	it2, _ := m.SeekLast()
-	k6, v6 := it2.Prev()
-	k7, v7 := it2.Prev()
-	k8, v8 := it2.Prev()
-	k9, v9 := it2.Prev()
-	k10, v10 := it2.Prev()
-
+	k6 := vm.Get("k6").Export().(string)
+	v6 := vm.Get("v6").Export().(int64)
+	k7 := vm.Get("k7").Export().(string)
+	v7 := vm.Get("v7").Export().(int64)
+	k8 := vm.Get("k8").Export().(string)
+	v8 := vm.Get("v8").Export().(int64)
+	k9 := vm.Get("k9").Export().(string)
+	v9 := vm.Get("v9").Export().(int64)
+	k10 := vm.Get("k10").Export().(string)
+	v10 := vm.Get("v10").Export().(int64)
 	require.EqualValues(t, "e", k6)
 	require.EqualValues(t, 5, v6)
 	require.EqualValues(t, "d", k7)
@@ -264,6 +248,7 @@ func TestSSS(t *testing.T) {
 	require.EqualValues(t, 2, v9)
 	require.EqualValues(t, "a", k10)
 	require.EqualValues(t, 1, v10)
+
 }
 
 func TestOrderedIntMapClear(t *testing.T) {

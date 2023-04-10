@@ -11,6 +11,7 @@ import (
 	"github.com/gcash/bchd/txscript"
 	"github.com/gcash/bchd/wire"
 	"github.com/gcash/bchutil"
+	"github.com/gcash/bchutil/merkleblock"
 )
 
 type BchTx struct {
@@ -268,3 +269,31 @@ func msgTxToBytes(tx *wire.MsgTx) []byte {
 	_ = tx.Serialize(&buf)
 	return buf.Bytes()
 }
+
+func MerkleProofToRootAndMatches(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
+	proof := getOneArrayBuffer(f)
+	rbuf := bytes.NewReader(proof)
+	msg := wire.MsgMerkleBlock{}
+	err := msg.BchDecode(rbuf, wire.ProtocolVersion, wire.LatestEncoding)
+	if err != nil {
+		panic(goja.NewSymbol("Error in MerkleProofToRootAndMatches: "+err.Error()))
+	}
+	// create partial merkle block from wire message and extract transaction
+	// matches
+	mBlock := merkleblock.NewMerkleBlockFromMsg(msg)
+	merkleRoot := mBlock.ExtractMatches()
+	// check if tree traversal was bad or extraction failed
+	matches := mBlock.GetMatches()
+	if merkleRoot == nil || mBlock.BadTree() || len(matches) == 0 {
+		panic(goja.NewSymbol("Error extracting txn matches from merkle tree traversal"))
+	}
+	result := make([]goja.ArrayBuffer, 1, len(matches))
+	hash := *merkleRoot
+	result[0] = vm.NewArrayBuffer(hash[:])
+	for _, tx := range matches {
+		hash = *tx
+		result = append(result, vm.NewArrayBuffer(hash[:]))
+	}
+	return vm.ToValue(result)
+}
+

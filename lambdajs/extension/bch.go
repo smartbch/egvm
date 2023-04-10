@@ -156,7 +156,7 @@ func signTxAndSerialize(tx BchTx, privateKeys ...PrivateKey) (string, error) {
 	sigHashes := txscript.NewTxSigHashes(msgTx)
 	hashType := txscript.SigHashAll | txscript.SigHashForkID
 	for idx, in := range msgTx.TxIn {
-		privKey := (*bchec.PrivateKey)(privateKeys[idx].toECDSA())
+		// privKey := (*bchec.PrivateKey)(privateKeys[idx].toECDSA())
 		privKey, ok := keyMap[tx.TxIn[idx].HexPubkey]
 		if !ok {
 			return "", fmt.Errorf("no corresponding private key for %s", tx.TxIn[idx].HexPubkey)

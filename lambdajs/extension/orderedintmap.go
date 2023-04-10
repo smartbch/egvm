@@ -73,9 +73,12 @@ func (m *OrderedIntMap) dumpTo(b []byte) []byte {
 	}
 	e, _ := m.tree.SeekFirst()
 	defer e.Close()
-	for k, v, err := e.Next(); err == nil; k, v, err = e.Next() {
+
+	k, v, err := e.Next()
+	for err == nil && k != "" {
 		b = msgp.AppendString(b, k)
 		b = msgp.AppendInt64(b, v)
+		k, v, err = e.Next()
 	}
 	return b
 }

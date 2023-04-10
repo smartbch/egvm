@@ -1,7 +1,6 @@
 package extension
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/dop251/goja"
@@ -10,7 +9,7 @@ import (
 
 const (
 	HttpScriptTemplate = `
-		const resp = HttpRequest('GET', 'https://elfinauth.paralinker.io/smartbch/eh_ping', '')
+		const resp = HttpRequest('GET', 'https://elfinauth.paralinker.io/smartbch/eh_ping', '', 'Content-Type:application/json')
 	`
 )
 
@@ -20,12 +19,12 @@ func setupGojaVmForHttp() *goja.Runtime {
 	return vm
 }
 
-// TODO: add more http test
 func TestHttpRequest(t *testing.T) {
 	vm := setupGojaVmForHttp()
 	_, err := vm.RunString(HttpScriptTemplate)
 	require.NoError(t, err)
 
 	resp := vm.Get("resp").Export().(HttpResponse)
-	fmt.Printf("resp: %+v\n", resp)
+	require.EqualValues(t, 200, resp.StatusCode)
+	require.EqualValues(t, `{"isSuccess":true,"message":"pong"}`, resp.Body)
 }

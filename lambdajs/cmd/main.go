@@ -8,8 +8,6 @@ import (
 	"os"
 
 	"github.com/dop251/goja"
-
-	"github.com/smartbch/pureauth/lambdajs/extension"
 )
 
 func readSource(filename string) ([]byte, error) {
@@ -29,7 +27,7 @@ func main() {
 		}
 
 		vm := goja.New()
-		extension.RegisterFunctions(vm)
+		RegisterFunctions(vm)
 
 		value, err := vm.RunString(string(src))
 		if err != nil {

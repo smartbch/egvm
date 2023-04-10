@@ -1,10 +1,12 @@
-package extension
+package types
 
 import (
 	"fmt"
 
 	"github.com/dop251/goja"
 	"github.com/tinylib/msgp/msgp"
+
+	"github.com/smartbch/pureauth/lambdajs/utils"
 )
 
 const (
@@ -47,7 +49,7 @@ func SerializeMaps(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
 }
 
 func DeserializeMaps(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
-	b := getOneArrayBuffer(f)
+	b := utils.GetOneArrayBuffer(f)
 	if len(b) == 0 {
 		panic(goja.NewSymbol("Empty map bytes"))
 	}

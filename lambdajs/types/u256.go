@@ -1,4 +1,4 @@
-package extension
+package types
 
 import (
 	"github.com/dop251/goja"
@@ -6,11 +6,11 @@ import (
 )
 
 const (
-	MAX_SAFE_INTEGER = (uint64(1) << 53) - 1
+	MaxSafeInteger = (uint64(1) << 53) - 1
 )
 
 type Uint256 struct {
-	x *uint256.Int
+	X *uint256.Int
 }
 
 func HexToU256(hex string) Uint256 {
@@ -18,182 +18,182 @@ func HexToU256(hex string) Uint256 {
 	if err != nil {
 		panic(goja.NewSymbol("invalid hex string"))
 	}
-	return Uint256{x: x}
+	return Uint256{X: x}
 }
 
 func BufToU256(buf goja.ArrayBuffer) Uint256 {
-	return Uint256{x: uint256.NewInt(0).SetBytes(buf.Bytes())}
+	return Uint256{X: uint256.NewInt(0).SetBytes(buf.Bytes())}
 }
 
 func U256(v uint64) Uint256 {
-	if v > MAX_SAFE_INTEGER {
+	if v > MaxSafeInteger {
 		panic(goja.NewSymbol("larger than Number.MAX_SAFE_INTEGER"))
 	}
-	return Uint256{x: uint256.NewInt(v)}
+	return Uint256{X: uint256.NewInt(v)}
 }
 
 func (u Uint256) ToS256() Sint256 {
-	return Sint256{x: u.x.Clone()}
+	return Sint256{x: u.X.Clone()}
 }
 
 func (u Uint256) Add(v Uint256) Uint256 {
-	result, overflow := uint256.NewInt(0).AddOverflow(u.x, v.x)
+	result, overflow := uint256.NewInt(0).AddOverflow(u.X, v.X)
 	if overflow {
 		panic(goja.NewSymbol("overflow in addition"))
 	}
-	return Uint256{x: result}
+	return Uint256{X: result}
 }
 
 func (u Uint256) UnsafeAdd(v Uint256) Uint256 {
-	result := uint256.NewInt(0).Add(u.x, v.x)
-	return Uint256{x: result}
+	result := uint256.NewInt(0).Add(u.X, v.X)
+	return Uint256{X: result}
 }
 
 func (u Uint256) And(v Uint256) Uint256 {
-	result := uint256.NewInt(0).And(u.x, v.x)
-	return Uint256{x: result}
+	result := uint256.NewInt(0).And(u.X, v.X)
+	return Uint256{X: result}
 }
 
 func (u Uint256) Div(v Uint256) Uint256 {
-	if v.x.IsZero() {
+	if v.X.IsZero() {
 		panic(goja.NewSymbol("divide by zero"))
 	}
-	result := uint256.NewInt(0).Div(u.x, v.x)
-	return Uint256{x: result}
+	result := uint256.NewInt(0).Div(u.X, v.X)
+	return Uint256{X: result}
 }
 
 func (u Uint256) Mod(v Uint256) Uint256 {
-	if v.x.IsZero() {
+	if v.X.IsZero() {
 		panic(goja.NewSymbol("divide by zero"))
 	}
-	result := uint256.NewInt(0).Mod(u.x, v.x)
-	return Uint256{x: result}
+	result := uint256.NewInt(0).Mod(u.X, v.X)
+	return Uint256{X: result}
 }
 
 func (u Uint256) DivMod(v Uint256) [2]Uint256 {
-	if v.x.IsZero() {
+	if v.X.IsZero() {
 		panic(goja.NewSymbol("divide by zero"))
 	}
-	quo, rem := uint256.NewInt(0).DivMod(u.x, v.x, uint256.NewInt(0))
-	return [2]Uint256{{x: quo}, {x: rem}}
+	quo, rem := uint256.NewInt(0).DivMod(u.X, v.X, uint256.NewInt(0))
+	return [2]Uint256{{X: quo}, {X: rem}}
 }
 
 func (u Uint256) Exp(v Uint256) Uint256 {
-	result := uint256.NewInt(0).Exp(u.x, v.x)
-	return Uint256{x: result}
+	result := uint256.NewInt(0).Exp(u.X, v.X)
+	return Uint256{X: result}
 }
 
 func (u Uint256) Gt(v Uint256) bool {
-	return u.x.Gt(v.x)
+	return u.X.Gt(v.X)
 }
 
 func (u Uint256) Gte(v Uint256) bool {
-	return !v.x.Gt(u.x)
+	return !v.X.Gt(u.X)
 }
 
 func (u Uint256) GtNum(v uint64) bool {
-	if v > MAX_SAFE_INTEGER {
+	if v > MaxSafeInteger {
 		panic(goja.NewSymbol("larger than Number.MAX_SAFE_INTEGER"))
 	}
-	return u.x.GtUint64(v)
+	return u.X.GtUint64(v)
 }
 
 func (u Uint256) GteNum(v uint64) bool {
-	if v > MAX_SAFE_INTEGER {
+	if v > MaxSafeInteger {
 		panic(goja.NewSymbol("larger than Number.MAX_SAFE_INTEGER"))
 	}
-	return !U256(v).x.Gt(u.x)
+	return !U256(v).X.Gt(u.X)
 }
 
 func (u Uint256) IsZero() bool {
-	return u.x.IsZero()
+	return u.X.IsZero()
 }
 
 func (u Uint256) Equal(v Uint256) bool {
-	return u.x.Eq(v.x)
+	return u.X.Eq(v.X)
 }
 
 func (u Uint256) Lt(v Uint256) bool {
-	return u.x.Lt(v.x)
+	return u.X.Lt(v.X)
 }
 
 func (u Uint256) Lte(v Uint256) bool {
-	return !v.x.Lt(u.x)
+	return !v.X.Lt(u.X)
 }
 
 func (u Uint256) LtNum(v uint64) bool {
-	if v > MAX_SAFE_INTEGER {
+	if v > MaxSafeInteger {
 		panic(goja.NewSymbol("larger than Number.MAX_SAFE_INTEGER"))
 	}
-	return u.x.LtUint64(v)
+	return u.X.LtUint64(v)
 }
 
 func (u Uint256) LteNum(v uint64) bool {
-	if v > MAX_SAFE_INTEGER {
+	if v > MaxSafeInteger {
 		panic(goja.NewSymbol("larger than Number.MAX_SAFE_INTEGER"))
 	}
-	return !U256(v).x.Lt(u.x)
+	return !U256(v).X.Lt(u.X)
 }
 
 func (u Uint256) Mul(v Uint256) Uint256 {
-	result, overflow := uint256.NewInt(0).MulOverflow(u.x, v.x)
+	result, overflow := uint256.NewInt(0).MulOverflow(u.X, v.X)
 	if overflow {
 		panic(goja.NewSymbol("overflow in multiplication"))
 	}
-	return Uint256{x: result}
+	return Uint256{X: result}
 }
 
 func (u Uint256) UnsafeMul(v Uint256) Uint256 {
-	result := uint256.NewInt(0).Mul(u.x, v.x)
-	return Uint256{x: result}
+	result := uint256.NewInt(0).Mul(u.X, v.X)
+	return Uint256{X: result}
 }
 
 func (u Uint256) Not() Uint256 {
-	result := uint256.NewInt(0).Not(u.x)
-	return Uint256{x: result}
+	result := uint256.NewInt(0).Not(u.X)
+	return Uint256{X: result}
 }
 
 func (u Uint256) Or(v Uint256) Uint256 {
-	result := uint256.NewInt(0).Or(u.x, v.x)
-	return Uint256{x: result}
+	result := uint256.NewInt(0).Or(u.X, v.X)
+	return Uint256{X: result}
 }
 
 func (u Uint256) Lsh(v uint) Uint256 {
-	result := uint256.NewInt(0).Lsh(u.x, v)
-	return Uint256{x: result}
+	result := uint256.NewInt(0).Lsh(u.X, v)
+	return Uint256{X: result}
 }
 
 func (u Uint256) Rsh(v uint) Uint256 {
-	result := uint256.NewInt(0).Rsh(u.x, v)
-	return Uint256{x: result}
+	result := uint256.NewInt(0).Rsh(u.X, v)
+	return Uint256{X: result}
 }
 
 func (u Uint256) Sqrt() Uint256 {
-	result := uint256.NewInt(0).Sqrt(u.x)
-	return Uint256{x: result}
+	result := uint256.NewInt(0).Sqrt(u.X)
+	return Uint256{X: result}
 }
 
 func (u Uint256) Sub(v Uint256) Uint256 {
-	if u.x.Lt(v.x) {
+	if u.X.Lt(v.X) {
 		panic(goja.NewSymbol("Overflow in substraction"))
 	}
-	result := uint256.NewInt(0).Sub(u.x, v.x)
-	return Uint256{x: result}
+	result := uint256.NewInt(0).Sub(u.X, v.X)
+	return Uint256{X: result}
 }
 
 func (u Uint256) UnsafeSub(v Uint256) Uint256 {
-	result := uint256.NewInt(0).Sub(u.x, v.x)
-	return Uint256{x: result}
+	result := uint256.NewInt(0).Sub(u.X, v.X)
+	return Uint256{X: result}
 }
 
 func (u Uint256) IsSafeInteger() bool {
-	u64, overflow := u.x.Uint64WithOverflow()
-	return u64 <= MAX_SAFE_INTEGER && !overflow
+	u64, overflow := u.X.Uint64WithOverflow()
+	return u64 <= MaxSafeInteger && !overflow
 }
 
 func (u Uint256) ToSafeInteger() int64 {
-	u64, overflow := u.x.Uint64WithOverflow()
-	safe := u64 <= MAX_SAFE_INTEGER && !overflow
+	u64, overflow := u.X.Uint64WithOverflow()
+	safe := u64 <= MaxSafeInteger && !overflow
 	if !safe {
 		panic(goja.NewSymbol("Overflow in ToSafeInteger"))
 	}
@@ -205,7 +205,7 @@ func (u Uint256) ToBuf(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
 		panic(vm.ToValue("ToBuf has no arguments."))
 	}
 	var dest [32]byte
-	u.x.WriteToArray32(&dest)
+	u.X.WriteToArray32(&dest)
 	return vm.ToValue(vm.NewArrayBuffer(dest[:]))
 }
 
@@ -213,12 +213,12 @@ func (u Uint256) ToHex(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
 	if len(f.Arguments) != 0 {
 		panic(vm.ToValue("ToHex has no arguments."))
 	}
-	return vm.ToValue(u.x.Hex())
+	return vm.ToValue(u.X.Hex())
 }
 
 func (u Uint256) ToString(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
 	if len(f.Arguments) != 0 {
 		panic(vm.ToValue("ToString has no arguments."))
 	}
-	return vm.ToValue(u.x.String())
+	return vm.ToValue(u.X.String())
 }

@@ -12,6 +12,8 @@ import (
 	"github.com/gcash/bchd/wire"
 	"github.com/gcash/bchutil"
 	"github.com/gcash/bchutil/merkleblock"
+
+	"github.com/smartbch/pureauth/lambdajs/utils"
 )
 
 type BchTx struct {
@@ -43,7 +45,7 @@ type TxOut struct {
 func ParseTxInHex(hexStr string) BchTx {
 	tx, err := parseTxInHex(hexStr)
 	if err != nil {
-		panic(goja.NewSymbol("Error in ParseTxInHex: "+err.Error()))
+		panic(goja.NewSymbol("Error in ParseTxInHex: " + err.Error()))
 	}
 	return *tx
 }
@@ -98,7 +100,7 @@ func parseTxInHex(hexStr string) (*BchTx, error) {
 func SignTxAndSerialize(tx BchTx, privateKeys ...PrivateKey) string {
 	hexStr, err := signTxAndSerialize(tx, privateKeys...)
 	if err != nil {
-		panic(goja.NewSymbol("Error in SignTxAndSerialize: "+err.Error()))
+		panic(goja.NewSymbol("Error in SignTxAndSerialize: " + err.Error()))
 	}
 	return hexStr
 }
@@ -271,12 +273,12 @@ func msgTxToBytes(tx *wire.MsgTx) []byte {
 }
 
 func MerkleProofToRootAndMatches(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
-	proof := getOneArrayBuffer(f)
+	proof := utils.GetOneArrayBuffer(f)
 	rbuf := bytes.NewReader(proof)
 	msg := wire.MsgMerkleBlock{}
 	err := msg.BchDecode(rbuf, wire.ProtocolVersion, wire.LatestEncoding)
 	if err != nil {
-		panic(goja.NewSymbol("Error in MerkleProofToRootAndMatches: "+err.Error()))
+		panic(goja.NewSymbol("Error in MerkleProofToRootAndMatches: " + err.Error()))
 	}
 	// create partial merkle block from wire message and extract transaction
 	// matches
@@ -296,4 +298,3 @@ func MerkleProofToRootAndMatches(f goja.FunctionCall, vm *goja.Runtime) goja.Val
 	}
 	return vm.ToValue(result)
 }
-

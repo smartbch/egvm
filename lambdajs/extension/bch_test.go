@@ -5,9 +5,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	ecies "github.com/ecies/go/v2"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGetPubkeyHashHex(t *testing.T) {

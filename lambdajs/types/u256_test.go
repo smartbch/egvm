@@ -1,4 +1,4 @@
-package extension
+package types
 
 import (
 	"fmt"
@@ -226,7 +226,7 @@ func TestU256Add(t *testing.T) {
 
 	// overflow
 	vm = setupGojaVmForU256()
-	v3, err := vm.RunString(fmt.Sprintf(U256UnsafeAddScriptTemplate, MAX_SAFE_INTEGER, MAX_SAFE_INTEGER))
+	v3, err := vm.RunString(fmt.Sprintf(U256UnsafeAddScriptTemplate, MaxSafeInteger, MaxSafeInteger))
 	require.NoError(t, err)
 	require.EqualValues(t, "0x3ffffffffffffe", v3.String())
 }
@@ -250,9 +250,9 @@ func TestU256DivAndMod(t *testing.T) {
 	require.NoError(t, err)
 
 	z := vm.Get("z").Export().(Uint256)
-	require.EqualValues(t, "0x3", z.x.String())
+	require.EqualValues(t, "0x3", z.X.String())
 	m := vm.Get("m").Export().(Uint256)
-	require.EqualValues(t, "0x1", m.x.String())
+	require.EqualValues(t, "0x1", m.X.String())
 }
 
 func TestU256Exp(t *testing.T) {
@@ -275,7 +275,7 @@ func TestU256Mul(t *testing.T) {
 
 	// overflow
 	vm = setupGojaVmForU256()
-	v3, err := vm.RunString(fmt.Sprintf(U256UnsafeMulScriptTemplate, 2, MAX_SAFE_INTEGER))
+	v3, err := vm.RunString(fmt.Sprintf(U256UnsafeMulScriptTemplate, 2, MaxSafeInteger))
 	require.NoError(t, err)
 	require.EqualValues(t, "0x3ffffffffffffe", v3.String())
 }
@@ -376,8 +376,8 @@ func TestU256Shift(t *testing.T) {
 
 	lsh := vm.Get("lsh").Export().(Uint256)
 	rsh := vm.Get("rsh").Export().(Uint256)
-	require.EqualValues(t, "0x3c", lsh.x.String())
-	require.EqualValues(t, "0x3", rsh.x.String())
+	require.EqualValues(t, "0x3c", lsh.X.String())
+	require.EqualValues(t, "0x3", rsh.X.String())
 }
 
 func TestU256SafeInteger(t *testing.T) {

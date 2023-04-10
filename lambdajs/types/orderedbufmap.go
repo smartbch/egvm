@@ -1,4 +1,4 @@
-package extension
+package types
 
 import (
 	"strings"
@@ -6,6 +6,8 @@ import (
 	"github.com/dop251/goja"
 	"github.com/tinylib/msgp/msgp"
 	"modernc.org/b/v2"
+
+	"github.com/smartbch/pureauth/lambdajs/utils"
 )
 
 type OrderedBufMapIter struct {
@@ -18,7 +20,7 @@ func (iter OrderedBufMapIter) Close() {
 
 func (iter OrderedBufMapIter) Next(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
 	if len(f.Arguments) != 0 {
-		panic(IncorrectArgumentCount)
+		panic(utils.IncorrectArgumentCount)
 	}
 	var result [2]any
 	k, v, err := iter.e.Next()
@@ -32,7 +34,7 @@ func (iter OrderedBufMapIter) Next(f goja.FunctionCall, vm *goja.Runtime) goja.V
 
 func (iter OrderedBufMapIter) Prev(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
 	if len(f.Arguments) != 0 {
-		panic(IncorrectArgumentCount)
+		panic(utils.IncorrectArgumentCount)
 	}
 	var result [2]any
 	k, v, err := iter.e.Prev()
@@ -109,7 +111,7 @@ func (m *OrderedBufMap) Delete(k string) {
 
 func (m *OrderedBufMap) Get(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
 	if len(f.Arguments) != 1 {
-		panic(IncorrectArgumentCount)
+		panic(utils.IncorrectArgumentCount)
 	}
 	k, ok := f.Arguments[0].Export().(string)
 	if !ok {
@@ -125,7 +127,7 @@ func (m *OrderedBufMap) Len() int {
 
 func (m *OrderedBufMap) Set(k string, buf goja.ArrayBuffer) {
 	if len(k) == 0 {
-		panic(goja.NewSymbol("Empty key string"))
+		panic(utils.EmptyKeyString)
 	}
 
 	v := buf.Bytes()

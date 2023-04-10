@@ -1,11 +1,12 @@
-package extension
+package types
 
 import (
 	"strings"
 
-	"github.com/dop251/goja"
 	"github.com/tinylib/msgp/msgp"
 	"modernc.org/b/v2"
+
+	"github.com/smartbch/pureauth/lambdajs/utils"
 )
 
 type OrderedIntMapIter struct {
@@ -105,7 +106,7 @@ func (m *OrderedIntMap) Len() int {
 
 func (m *OrderedIntMap) Set(k string, v int64) {
 	if len(k) == 0 {
-		panic(goja.NewSymbol("Empty key string"))
+		panic(utils.EmptyKeyString)
 	}
 
 	m.tree.Put(k, func(_ int64, exists bool) (int64, bool) {

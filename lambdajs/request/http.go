@@ -1,4 +1,4 @@
-package extension
+package request
 
 import (
 	"errors"

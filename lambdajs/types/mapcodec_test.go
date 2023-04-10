@@ -1,10 +1,11 @@
-package extension
+package types
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/dop251/goja"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 const (

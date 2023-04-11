@@ -9,13 +9,13 @@ import (
 
 const (
 	HttpScriptTemplate = `
-		const resp = HttpRequest('GET', 'https://elfinauth.paralinker.io/smartbch/eh_ping', '', 'Content-Type:application/json')
+		const resp = HttpsRequest('GET', 'https://elfinauth.paralinker.io/smartbch/eh_ping', '', 'Content-Type:application/json')
 	`
 )
 
 func setupGojaVmForHttp() *goja.Runtime {
 	vm := goja.New()
-	vm.Set("HttpRequest", HttpRequest)
+	vm.Set("HttpsRequest", HttpsRequest)
 	return vm
 }
 

@@ -1,8 +1,11 @@
 package request
 
 import (
+	"context"
+	"crypto/tls"
 	"errors"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"sort"
@@ -25,6 +28,33 @@ func HttpRequest(method, serverURL, body string, headers ...string) HttpResponse
 		panic(goja.NewSymbol("Error in parsing http request: " + err.Error()))
 	}
 	client := http.Client{Timeout: 5 * time.Second}
+	resp, err := client.Do(&req)
+	if err != nil {
+		panic(goja.NewSymbol("Error in sending http request: " + err.Error()))
+	}
+	result, err := newHttpResponse(resp)
+	if err != nil {
+		panic(goja.NewSymbol("Error in parsing http response: " + err.Error()))
+	}
+	return result
+}
+
+func HttpsRequest(method, serverURL, body string, headers ...string) HttpResponse {
+	req, err := newHttpRequest(method, serverURL, body, headers...)
+	if err != nil {
+		panic(goja.NewSymbol("Error in parsing http request: " + err.Error()))
+	}
+
+	tlsConfig := http.DefaultTransport.(*http.Transport).TLSClientConfig
+	client := &http.Client{
+		Transport: &http.Transport{
+			DialTLSContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+				conn, err := tls.Dial(network, addr, tlsConfig)
+				return conn, err
+			},
+		},
+	}
+
 	resp, err := client.Do(&req)
 	if err != nil {
 		panic(goja.NewSymbol("Error in sending http request: " + err.Error()))

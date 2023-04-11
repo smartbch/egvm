@@ -1,0 +1,25 @@
+{
+  "exe": "lambdajs",
+  "key": "private.pem",
+  "debug": false,
+  "heapSize": 1024,
+  "executableHeap": false,
+  "productID": 1,
+  "securityVersion": 3,
+  "mounts": [
+    {
+      "source": "/home/jumpuser/soft/pureauth/lambdajs/testjs",
+      "target": "/testjs",
+      "type": "hostfs",
+      "readOnly": true
+    },
+    {
+      "source": "/home/jumpuser/soft/pureauth/lambdajs/ssl",
+      "target": "/etc/ssl",
+      "type": "hostfs",
+      "readOnly": true
+    }
+  ],
+  "env": null,
+  "files": null
+}

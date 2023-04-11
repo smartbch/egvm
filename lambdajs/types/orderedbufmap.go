@@ -65,7 +65,8 @@ func (m *OrderedBufMap) loadFrom(b []byte) ([]byte, error) {
 		return nil, err
 	}
 	for i := 0; i < count; i++ {
-		k, v := "", []byte{}
+		var v []byte
+		k := ""
 		k, b, err = msgp.ReadStringBytes(b)
 		if err != nil {
 			return nil, err

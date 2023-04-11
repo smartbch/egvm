@@ -1,8 +1,6 @@
 package types
 
 import (
-	"fmt"
-
 	"github.com/dop251/goja"
 	"github.com/tinylib/msgp/msgp"
 
@@ -15,6 +13,7 @@ const (
 	OrderedBufMapTag = byte(2)
 )
 
+// arguments: maps ...interface{}
 func SerializeMaps(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
 	totalSize := 0
 	for _, arg := range f.Arguments {
@@ -48,40 +47,61 @@ func SerializeMaps(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
 	return vm.ToValue(vm.NewArrayBuffer(b))
 }
 
-func DeserializeMaps(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
-	b := utils.GetOneArrayBuffer(f)
+// Note: Each call deserializes only one map and returns the rest of the array buffer
+// arguments: bz goja.ArrayBuffer, tag uint8
+func DeserializeMap(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
+	if len(f.Arguments) != 2 {
+		panic(utils.IncorrectArgumentCount)
+	}
+
+	buf, ok := f.Arguments[0].Export().(goja.ArrayBuffer)
+	if !ok {
+		panic(goja.NewSymbol("The first argument must be ArrayBuffer"))
+	}
+
+	b := buf.Bytes()
 	if len(b) == 0 {
 		panic(goja.NewSymbol("Empty map bytes"))
 	}
 
-	var result []any
-	var tag byte
-	var err error
-	var remainBz []byte
-	copy(remainBz, b)
-	for i := 0; len(remainBz) != 0; i++ {
-		tag, remainBz, err = msgp.ReadByteBytes(b)
-		if err != nil || tag > OrderedBufMapTag {
-			panic(goja.NewSymbol("Tag byte error in DeserializeMaps " + err.Error()))
-		}
-
-		if tag == OrderedIntMapTag {
-			m := NewOrderedIntMap()
-			b, err = m.loadFrom(b)
-			result = append(result, m)
-		} else if tag == OrderedStrMapTag {
-			m := NewOrderedStrMap()
-			b, err = m.loadFrom(b)
-			result = append(result, m)
-		} else if tag == OrderedBufMapTag {
-			m := NewOrderedBufMap()
-			b, err = m.loadFrom(b)
-			result = append(result, m)
-		}
-
-		if err != nil {
-			panic(goja.NewSymbol(fmt.Sprintf("Error in loading #%d map", i)))
-		}
+	expectedTag, ok := f.Arguments[1].Export().(int64)
+	if !ok {
+		panic(goja.NewSymbol("The second argument must be uint8"))
 	}
+
+	if expectedTag < 0 || expectedTag > int64(OrderedBufMapTag) {
+		panic(goja.NewSymbol("Invalid map tag"))
+	}
+
+	var mv goja.Value
+	tag, b, err := msgp.ReadByteBytes(b)
+	if err != nil || tag > OrderedBufMapTag {
+		panic(goja.NewSymbol("Tag byte error in DeserializeMaps " + err.Error()))
+	}
+
+	if tag != byte(expectedTag) {
+		panic(goja.NewSymbol("Tag byte is not equal to inputted type"))
+	}
+
+	if tag == OrderedIntMapTag {
+		im := NewOrderedIntMap()
+		b, err = im.loadFrom(b)
+		mv = vm.ToValue(im)
+	} else if tag == OrderedStrMapTag {
+		sm := NewOrderedStrMap()
+		b, err = sm.loadFrom(b)
+		mv = vm.ToValue(sm)
+	} else if tag == OrderedBufMapTag {
+		bm := NewOrderedBufMap()
+		b, err = bm.loadFrom(b)
+		mv = vm.ToValue(bm)
+	}
+
+	if err != nil {
+		panic(goja.NewSymbol("Error in loading map"))
+	}
+
+	var result [2]any
+	result = [2]any{mv, vm.NewArrayBuffer(b)}
 	return vm.ToValue(result)
 }

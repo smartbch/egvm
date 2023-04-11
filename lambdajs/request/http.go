@@ -3,17 +3,39 @@ package request
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
+	"encoding/pem"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 	"time"
 
 	"github.com/dop251/goja"
 )
+
+const (
+	TrustedCertsPath = "./certs"
+)
+
+var (
+	tlsConfig *tls.Config
+)
+
+func init() {
+	var err error
+	tlsConfig, err = loadTlsConfig(TrustedCertsPath)
+	if err != nil {
+		fmt.Printf("err: %v\n", err)
+		panic("cannot load trusted certificates")
+	}
+}
 
 type HttpResponse struct {
 	Status     string
@@ -45,7 +67,6 @@ func HttpsRequest(method, serverURL, body string, headers ...string) HttpRespons
 		panic(goja.NewSymbol("Error in parsing http request: " + err.Error()))
 	}
 
-	tlsConfig := http.DefaultTransport.(*http.Transport).TLSClientConfig
 	client := &http.Client{
 		Transport: &http.Transport{
 			DialTLSContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
@@ -105,4 +126,42 @@ func newHttpResponse(resp *http.Response) (result HttpResponse, err error) {
 		}
 	}
 	return
+}
+
+func loadTlsConfig(certsPath string) (*tls.Config, error) {
+	dicEntry, err := os.ReadDir(certsPath)
+	if err != nil {
+		return nil, err
+	}
+
+	tlsConfig := &tls.Config{RootCAs: x509.NewCertPool()}
+	for _, e := range dicEntry {
+		if e.IsDir() {
+			panic("cannot keep dir in trusted certs directory")
+		}
+
+		fileNames := strings.Split(e.Name(), ".")
+
+		// if not pem file
+		if len(fileNames) != 2 || fileNames[1] != "pem" {
+			continue
+		}
+
+		certBz, err := os.ReadFile(filepath.Join(certsPath, e.Name()))
+		if err != nil {
+			return nil, err
+		}
+
+		var b *pem.Block
+		for len(certBz) > 0 {
+			b, certBz = pem.Decode(certBz)
+			x509Cert, err := x509.ParseCertificate(b.Bytes)
+			if err != nil {
+				return nil, err
+			}
+			tlsConfig.RootCAs.AddCert(x509Cert)
+		}
+
+	}
+	return tlsConfig, nil
 }

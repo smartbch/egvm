@@ -43,5 +43,6 @@ func RegisterFunctions(vm *goja.Runtime) {
 
 	// http request
 	vm.Set("HttpRequest", request.HttpRequest)
+	vm.Set("HttpsRequest", request.HttpsRequest)
 
 }

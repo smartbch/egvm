@@ -10,7 +10,8 @@ import (
 
 const (
 	HttpScriptTemplate = `
-		const resp = HttpsRequest('GET', 'https://elfinauth.paralinker.io/smartbch/eh_ping', '', 'Content-Type:application/json')
+		//const resp = HttpsRequest('GET', 'https://elfinauth.paralinker.io/smartbch/eh_ping', '', 'Content-Type:application/json')
+		const resp = HttpsRequest('GET', 'https://elfincdn111.paralinker.io/eh_ping', '', 'Content-Type:application/json')
 		const body = resp.Body
 	`
 )

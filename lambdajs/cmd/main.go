@@ -29,12 +29,11 @@ func main() {
 		vm := goja.New()
 		RegisterFunctions(vm)
 
-		value, err := vm.RunString(string(src))
+		_, err = vm.RunString(string(src))
 		if err != nil {
 			return err
 		}
 
-		fmt.Printf("run script value: %s\n", value)
 		return nil
 	}()
 

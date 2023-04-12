@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/dop251/goja"
+	gethcmn "github.com/ethereum/go-ethereum/common"
 
 	"github.com/smartbch/pureauth/lambdajs/utils"
 )
@@ -24,7 +25,8 @@ func BufConcat(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
 			panic(vm.ToValue("Unsupported type for BufConcat"))
 		}
 	}
-	result := make([]byte, totalLen, 0)
+
+	result := make([]byte, 0, totalLen)
 	for _, bz := range data {
 		result = append(result, bz...)
 	}
@@ -54,10 +56,8 @@ func HexToBuf(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
 	if !ok {
 		panic(goja.NewSymbol("The first argument must be string"))
 	}
-	data, err := hex.DecodeString(str)
-	if err != nil {
-		panic(goja.NewSymbol("error in HexToBuf: " + err.Error()))
-	}
+
+	data := gethcmn.FromHex(str)
 	return vm.ToValue(vm.NewArrayBuffer(data))
 }
 

@@ -99,12 +99,6 @@ const (
 		const lteNum = a.LteNum(b)
 	`
 
-	S256SqrtScriptTemplate = `
-		const a = S256(%v)
-		const sq = a.Sqrt()
-		sq.ToString()
-	`
-
 	S256ShiftScriptTemplate = `
 		const a = HexToS256('%v')
 		const l = %v

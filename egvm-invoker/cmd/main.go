@@ -11,8 +11,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/smartbch/pureauth/lambdaservice/executor"
-	"github.com/smartbch/pureauth/lambdaservice/types"
+	"github.com/smartbch/pureauth/egvm-invoker/executor"
+	"github.com/smartbch/pureauth/egvm-invoker/types"
 )
 
 func main() {

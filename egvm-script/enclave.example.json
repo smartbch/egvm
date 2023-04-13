@@ -8,14 +8,14 @@
   "securityVersion": 3,
   "mounts": [
     {
-      "source": "/home/jumpuser/soft/pureauth/lambdajs/testjs",
+      "source": "/home/jumpuser/soft/pureauth/egvm-script/testjs",
       "target": "/testjs",
       "type": "hostfs",
       "readOnly": true
     },
     {
-      "source": "/home/jumpuser/soft/pureauth/lambdajs/ssl",
-      "target": "/etc/ssl",
+      "source": "/home/jumpuser/soft/pureauth/egvm-script/certs",
+      "target": "/certs",
       "type": "hostfs",
       "readOnly": true
     }

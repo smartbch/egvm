@@ -13,7 +13,7 @@ import (
 	"github.com/gcash/bchutil"
 	"github.com/gcash/bchutil/merkleblock"
 
-	"github.com/smartbch/pureauth/lambdajs/utils"
+	"github.com/smartbch/pureauth/egvm-script/utils"
 )
 
 type BchTx struct {

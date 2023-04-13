@@ -60,8 +60,13 @@ const (
 
 	BufReverseScriptTemplate = `
 		const buffer1 = new Uint8Array([1, 2, 3, 4]).buffer
-
 		const reverseBz = BufReverse(buffer1)
+	`
+
+	BufToUintScriptTemplate = `
+		const buffer1 = new Uint8Array([1, 2, 3, 4, 8, 7, 6, 5]).buffer
+		const u64be = BufToU64BE(buffer1)
+		const u64le = BufToU64LE(buffer1)
 	`
 )
 
@@ -75,6 +80,15 @@ func setupGojaVmForBuffer() *goja.Runtime {
 	vm.Set("BufEqual", BufEqual)
 	vm.Set("BufCompare", BufCompare)
 	vm.Set("BufReverse", BufReverse)
+
+	vm.Set("BufToU64BE", BufToU64BE)
+	vm.Set("BufToU64LE", BufToU64LE)
+	vm.Set("BufToU32BE", BufToU32BE)
+	vm.Set("BufToU32LE", BufToU32LE)
+	vm.Set("U64ToBufBE", U64ToBufBE)
+	vm.Set("U64ToBufLE", U64ToBufLE)
+	vm.Set("U32ToBufBE", U32ToBufBE)
+	vm.Set("U32ToBufLE", U32ToBufLE)
 	return vm
 }
 
@@ -149,4 +163,15 @@ func TestBufReverse(t *testing.T) {
 	reverseBz := vm.Get("reverseBz").Export().(goja.ArrayBuffer)
 	reverseBzHex := gethcmn.Bytes2Hex(reverseBz.Bytes())
 	require.EqualValues(t, "04030201", reverseBzHex)
+}
+
+func TestBufToUint(t *testing.T) {
+	vm := setupGojaVmForBuffer()
+	_, err := vm.RunString(BufToUintScriptTemplate)
+	require.NoError(t, err)
+
+	u64be := vm.Get("u64be").Export().(float64)
+	u64le := vm.Get("u64le").Export().(float64)
+	require.EqualValues(t, 72623859840779781, u64be)
+	require.EqualValues(t, 361984551058342401, u64le)
 }

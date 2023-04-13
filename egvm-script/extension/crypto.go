@@ -14,7 +14,7 @@ import (
 	"github.com/gcash/bchutil"
 	"github.com/vechain/go-ecvrf"
 
-	"github.com/smartbch/pureauth/lambdajs/utils"
+	"github.com/smartbch/pureauth/egvm-script/utils"
 )
 
 // --------- AES ---------

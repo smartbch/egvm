@@ -7,8 +7,8 @@ import (
 	ecies "github.com/ecies/go/v2"
 	"github.com/tyler-smith/go-bip32"
 
+	"github.com/smartbch/pureauth/egvm-script/utils"
 	"github.com/smartbch/pureauth/keygrantor"
-	"github.com/smartbch/pureauth/lambdajs/utils"
 )
 
 // ===============

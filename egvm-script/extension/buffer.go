@@ -5,12 +5,10 @@ import (
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/hex"
-	"strings"
-
 	"github.com/dop251/goja"
 	gethcmn "github.com/ethereum/go-ethereum/common"
 
-	"github.com/smartbch/pureauth/lambdajs/utils"
+	"github.com/smartbch/pureauth/egvm-script/utils"
 )
 
 func BufConcat(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
@@ -90,34 +88,6 @@ func BufReverse(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
 		b = append(b, a[len(a)-1-i])
 	}
 	return vm.ToValue(vm.NewArrayBuffer(b))
-}
-
-type BufBuilder struct {
-	b *strings.Builder
-}
-
-func (b BufBuilder) Len() int {
-	return b.b.Len()
-}
-
-func (b BufBuilder) Reset() {
-	b.b.Reset()
-}
-
-func (b BufBuilder) Write(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
-	bz := utils.GetOneArrayBuffer(f)
-	n, err := b.b.Write(bz)
-	if err != nil {
-		panic(goja.NewSymbol("error in Ecrecover: " + err.Error()))
-	}
-	return vm.ToValue(n)
-}
-
-func (b BufBuilder) ToBuf(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
-	if len(f.Arguments) != 0 {
-		panic(utils.IncorrectArgumentCount)
-	}
-	return vm.ToValue(vm.NewArrayBuffer([]byte(b.b.String())))
 }
 
 func BufToU64BE(f goja.FunctionCall, vm *goja.Runtime) goja.Value {

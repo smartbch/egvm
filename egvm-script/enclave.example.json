@@ -1,5 +1,5 @@
 {
-  "exe": "lambdajs",
+  "exe": "egvmscript",
   "key": "private.pem",
   "debug": false,
   "heapSize": 1024,

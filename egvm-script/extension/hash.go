@@ -10,7 +10,7 @@ import (
 	"golang.org/x/crypto/ripemd160"
 	"golang.org/x/crypto/sha3"
 
-	"github.com/smartbch/pureauth/lambdajs/types"
+	"github.com/smartbch/pureauth/egvm-script/types"
 )
 
 // ===============

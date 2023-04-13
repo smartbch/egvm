@@ -20,4 +20,4 @@ keygrantor/cmd/cmd
 
 .idea
 lambdascript/cmd/cmd
-lambdajs/cmd/cmd
+egvm-script/cmd/cmd

@@ -7,7 +7,7 @@ import (
 	"github.com/tinylib/msgp/msgp"
 	"modernc.org/b/v2"
 
-	"github.com/smartbch/pureauth/lambdajs/utils"
+	"github.com/smartbch/pureauth/egvm-script/utils"
 )
 
 type OrderedBufMapIter struct {

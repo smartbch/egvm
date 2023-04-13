@@ -89,7 +89,7 @@ func BufReverse(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
 	for i := range a {
 		b = append(b, a[len(a)-1-i])
 	}
-	return vm.ToValue(vm.NewArrayBuffer(a))
+	return vm.ToValue(vm.NewArrayBuffer(b))
 }
 
 type BufBuilder struct {

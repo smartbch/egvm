@@ -27,13 +27,41 @@ const (
 	`
 
 	B64ToBufScriptTemplate = `
-		const base64Str = 'YWJjZDEyMzQ='
-		const bz = B64ToBuf(base64Str)
+		const b64Str = 'YWJjZDEyMzQ='
+		const bz = B64ToBuf(b64Str)
 	`
 
 	HexToBufScriptTemplate = `
 		const hex = '0xff11'
 		const bz = HexToBuf(hex)
+	`
+
+	BufToB64ScriptTemplate = `
+		const buffer1 = new Uint8Array([97, 98, 99, 100, 49, 50, 51, 52]).buffer
+		const b64Str = BufToB64(buffer1)
+	`
+
+	BufToHexScriptTemplate = `
+		const buffer1 = new Uint8Array([255, 17]).buffer
+		const hex = BufToHex(buffer1)
+	`
+
+	BufEqualAndCompareScriptTemplate = `
+		const buffer1 = new Uint8Array([1, 2, 3, 4]).buffer
+		const buffer2 = new Uint8Array([1, 2, 3, 4]).buffer
+		const buffer3 = new Uint8Array([1, 2, 3, 5]).buffer
+		const buffer4 = new Uint8Array([1, 2, 3, 3]).buffer
+
+		const v1 = BufEqual(buffer1, buffer2)
+		const v2 = BufCompare(buffer1, buffer2)
+		const v3 = BufCompare(buffer1, buffer3)
+		const v4 = BufCompare(buffer1, buffer4)
+	`
+
+	BufReverseScriptTemplate = `
+		const buffer1 = new Uint8Array([1, 2, 3, 4]).buffer
+
+		const reverseBz = BufReverse(buffer1)
 	`
 )
 
@@ -42,6 +70,11 @@ func setupGojaVmForBuffer() *goja.Runtime {
 	vm.Set("BufConcat", BufConcat)
 	vm.Set("B64ToBuf", B64ToBuf)
 	vm.Set("HexToBuf", HexToBuf)
+	vm.Set("BufToB64", BufToB64)
+	vm.Set("BufToHex", BufToHex)
+	vm.Set("BufEqual", BufEqual)
+	vm.Set("BufCompare", BufCompare)
+	vm.Set("BufReverse", BufReverse)
 	return vm
 }
 
@@ -73,4 +106,47 @@ func TestHexToBuf(t *testing.T) {
 	bz := vm.Get("bz").Export().(goja.ArrayBuffer)
 	bzHex := gethcmn.Bytes2Hex(bz.Bytes())
 	require.EqualValues(t, "ff11", bzHex)
+}
+
+func TestBufToB64(t *testing.T) {
+	vm := setupGojaVmForBuffer()
+	_, err := vm.RunString(BufToB64ScriptTemplate)
+	require.NoError(t, err)
+
+	b64Str := vm.Get("b64Str").Export().(string)
+	require.EqualValues(t, "YWJjZDEyMzQ=", b64Str)
+}
+
+func TestBufToHex(t *testing.T) {
+	vm := setupGojaVmForBuffer()
+	_, err := vm.RunString(BufToHexScriptTemplate)
+	require.NoError(t, err)
+
+	hex := vm.Get("hex").Export().(string)
+	require.EqualValues(t, "ff11", hex)
+}
+
+func TestBufEqualAndCompare(t *testing.T) {
+	vm := setupGojaVmForBuffer()
+	_, err := vm.RunString(BufEqualAndCompareScriptTemplate)
+	require.NoError(t, err)
+
+	v1 := vm.Get("v1").Export().(bool)
+	v2 := vm.Get("v2").Export().(int64)
+	v3 := vm.Get("v3").Export().(int64)
+	v4 := vm.Get("v4").Export().(int64)
+	require.True(t, v1)
+	require.EqualValues(t, 0, v2)
+	require.EqualValues(t, -1, v3)
+	require.EqualValues(t, 1, v4)
+}
+
+func TestBufReverse(t *testing.T) {
+	vm := setupGojaVmForBuffer()
+	_, err := vm.RunString(BufReverseScriptTemplate)
+	require.NoError(t, err)
+
+	reverseBz := vm.Get("reverseBz").Export().(goja.ArrayBuffer)
+	reverseBzHex := gethcmn.Bytes2Hex(reverseBz.Bytes())
+	require.EqualValues(t, "04030201", reverseBzHex)
 }

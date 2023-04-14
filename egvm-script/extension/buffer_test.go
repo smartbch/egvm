@@ -189,10 +189,17 @@ func TestBufToUint(t *testing.T) {
 	require.EqualValues(t, 16912138, u32be)
 	require.EqualValues(t, 168755713, u32le)
 
-	//bufbe64 := vm.Get("bufbe64").Export().(goja.ArrayBuffer)
-	//bufbe64Hex := gethcmn.Bytes2Hex(bufbe64.Bytes())
-	//bufle64 := vm.Get("bufle64").Export().(goja.ArrayBuffer)
-	//bufle64Hex := gethcmn.Bytes2Hex(bufle64.Bytes())
-	//require.EqualValues(t, "16912138", bufbe64Hex)
-	//require.EqualValues(t, "168755713", bufle64Hex)
+	bufbe64 := vm.Get("bufbe64").Export().(goja.ArrayBuffer)
+	bufbe64Hex := gethcmn.Bytes2Hex(bufbe64.Bytes())
+	bufle64 := vm.Get("bufle64").Export().(goja.ArrayBuffer)
+	bufle64Hex := gethcmn.Bytes2Hex(bufle64.Bytes())
+	require.EqualValues(t, "00038d7ea4c68000", bufbe64Hex)
+	require.EqualValues(t, "0080c6a47e8d0300", bufle64Hex)
+
+	bufbe32 := vm.Get("bufbe32").Export().(goja.ArrayBuffer)
+	bufbe32Hex := gethcmn.Bytes2Hex(bufbe32.Bytes())
+	bufle32 := vm.Get("bufle32").Export().(goja.ArrayBuffer)
+	bufle32Hex := gethcmn.Bytes2Hex(bufle32.Bytes())
+	require.EqualValues(t, "00002710", bufbe32Hex)
+	require.EqualValues(t, "10270000", bufle32Hex)
 }

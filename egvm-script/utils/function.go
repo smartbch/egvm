@@ -6,11 +6,16 @@ func GetOneUint64(f goja.FunctionCall) uint64 {
 	if len(f.Arguments) != 1 {
 		panic(IncorrectArgumentCount)
 	}
-	a, ok := f.Arguments[0].Export().(uint64)
+	a, ok := f.Arguments[0].Export().(int64)
 	if !ok {
 		panic(goja.NewSymbol("The first argument must be number"))
 	}
-	return a
+
+	if uint64(a) > MaxSafeInteger {
+		panic(LargerThanMaxInteger)
+	}
+
+	return uint64(a)
 }
 
 func GetOneArrayBuffer(f goja.FunctionCall) []byte {

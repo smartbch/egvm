@@ -67,6 +67,15 @@ const (
 		const buffer1 = new Uint8Array([1, 2, 3, 4, 8, 7, 6, 5]).buffer
 		const u64be = BufToU64BE(buffer1)
 		const u64le = BufToU64LE(buffer1)
+
+		const buffer2 = new Uint8Array([1, 2, 15, 10]).buffer
+		const u32be = BufToU32BE(buffer2)
+		const u32le = BufToU32LE(buffer2)
+
+		const bufbe64 = U64ToBufBE(1000000000000000)
+		const bufle64 = U64ToBufLE(1000000000000000)
+		const bufbe32 = U32ToBufBE(10000)
+		const bufle32 = U32ToBufLE(10000)
 	`
 )
 
@@ -174,4 +183,16 @@ func TestBufToUint(t *testing.T) {
 	u64le := vm.Get("u64le").Export().(float64)
 	require.EqualValues(t, 72623859840779781, u64be)
 	require.EqualValues(t, 361984551058342401, u64le)
+
+	u32be := vm.Get("u32be").Export().(int64)
+	u32le := vm.Get("u32le").Export().(int64)
+	require.EqualValues(t, 16912138, u32be)
+	require.EqualValues(t, 168755713, u32le)
+
+	//bufbe64 := vm.Get("bufbe64").Export().(goja.ArrayBuffer)
+	//bufbe64Hex := gethcmn.Bytes2Hex(bufbe64.Bytes())
+	//bufle64 := vm.Get("bufle64").Export().(goja.ArrayBuffer)
+	//bufle64Hex := gethcmn.Bytes2Hex(bufle64.Bytes())
+	//require.EqualValues(t, "16912138", bufbe64Hex)
+	//require.EqualValues(t, "168755713", bufle64Hex)
 }

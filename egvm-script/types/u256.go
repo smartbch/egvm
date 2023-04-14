@@ -3,10 +3,8 @@ package types
 import (
 	"github.com/dop251/goja"
 	"github.com/holiman/uint256"
-)
 
-const (
-	MaxSafeInteger = (uint64(1) << 53) - 1
+	"github.com/smartbch/pureauth/egvm-script/utils"
 )
 
 type Uint256 struct {
@@ -26,8 +24,8 @@ func BufToU256(buf goja.ArrayBuffer) Uint256 {
 }
 
 func U256(v uint64) Uint256 {
-	if v > MaxSafeInteger {
-		panic(goja.NewSymbol("larger than Number.MAX_SAFE_INTEGER"))
+	if v > utils.MaxSafeInteger {
+		panic(utils.LargerThanMaxInteger)
 	}
 	return Uint256{X: uint256.NewInt(v)}
 }
@@ -92,15 +90,15 @@ func (u Uint256) Gte(v Uint256) bool {
 }
 
 func (u Uint256) GtNum(v uint64) bool {
-	if v > MaxSafeInteger {
-		panic(goja.NewSymbol("larger than Number.MAX_SAFE_INTEGER"))
+	if v > utils.MaxSafeInteger {
+		panic(utils.LargerThanMaxInteger)
 	}
 	return u.X.GtUint64(v)
 }
 
 func (u Uint256) GteNum(v uint64) bool {
-	if v > MaxSafeInteger {
-		panic(goja.NewSymbol("larger than Number.MAX_SAFE_INTEGER"))
+	if v > utils.MaxSafeInteger {
+		panic(utils.LargerThanMaxInteger)
 	}
 	return !U256(v).X.Gt(u.X)
 }
@@ -122,15 +120,15 @@ func (u Uint256) Lte(v Uint256) bool {
 }
 
 func (u Uint256) LtNum(v uint64) bool {
-	if v > MaxSafeInteger {
-		panic(goja.NewSymbol("larger than Number.MAX_SAFE_INTEGER"))
+	if v > utils.MaxSafeInteger {
+		panic(utils.LargerThanMaxInteger)
 	}
 	return u.X.LtUint64(v)
 }
 
 func (u Uint256) LteNum(v uint64) bool {
-	if v > MaxSafeInteger {
-		panic(goja.NewSymbol("larger than Number.MAX_SAFE_INTEGER"))
+	if v > utils.MaxSafeInteger {
+		panic(utils.LargerThanMaxInteger)
 	}
 	return !U256(v).X.Lt(u.X)
 }
@@ -138,7 +136,7 @@ func (u Uint256) LteNum(v uint64) bool {
 func (u Uint256) Mul(v Uint256) Uint256 {
 	result, overflow := uint256.NewInt(0).MulOverflow(u.X, v.X)
 	if overflow {
-		panic(goja.NewSymbol("overflow in multiplication"))
+		panic(utils.OverflowInSigned)
 	}
 	return Uint256{X: result}
 }
@@ -188,12 +186,12 @@ func (u Uint256) UnsafeSub(v Uint256) Uint256 {
 
 func (u Uint256) IsSafeInteger() bool {
 	u64, overflow := u.X.Uint64WithOverflow()
-	return u64 <= MaxSafeInteger && !overflow
+	return u64 <= utils.MaxSafeInteger && !overflow
 }
 
 func (u Uint256) ToSafeInteger() int64 {
 	u64, overflow := u.X.Uint64WithOverflow()
-	safe := u64 <= MaxSafeInteger && !overflow
+	safe := u64 <= utils.MaxSafeInteger && !overflow
 	if !safe {
 		panic(goja.NewSymbol("Overflow in ToSafeInteger"))
 	}

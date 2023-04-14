@@ -3,10 +3,8 @@ package types
 import (
 	"github.com/dop251/goja"
 	"github.com/holiman/uint256"
-)
 
-var (
-	MinNegValue = uint256.NewInt(0).Lsh(uint256.NewInt(1), 255)
+	"github.com/smartbch/pureauth/egvm-script/utils"
 )
 
 type Sint256 struct {
@@ -26,8 +24,8 @@ func BufToS256(buf goja.ArrayBuffer) Sint256 {
 }
 
 func S256(v int64) Sint256 {
-	if v > int64(MaxSafeInteger) || -v > int64(MaxSafeInteger) {
-		panic(goja.NewSymbol("larger than Number.MAX_SAFE_INTEGER"))
+	if v > int64(utils.MaxSafeInteger) || -v > int64(utils.MaxSafeInteger) {
+		panic(utils.LargerThanMaxInteger)
 	}
 	if v >= 0 {
 		return Sint256{x: uint256.NewInt(uint64(v))}
@@ -41,7 +39,7 @@ func (s Sint256) ToU256() Uint256 {
 }
 
 func (s Sint256) Abs() Sint256 {
-	if s.x.Eq(MinNegValue) {
+	if s.x.Eq(utils.MinNegValue) {
 		panic(goja.NewSymbol("overflow in Abs"))
 	}
 	result := uint256.NewInt(0).Abs(s.x)
@@ -49,7 +47,7 @@ func (s Sint256) Abs() Sint256 {
 }
 
 func (s Sint256) Neg() Sint256 {
-	if s.x.Eq(MinNegValue) {
+	if s.x.Eq(utils.MinNegValue) {
 		panic(goja.NewSymbol("overflow in Neg"))
 	}
 	result := uint256.NewInt(0).Neg(s.x)
@@ -94,7 +92,7 @@ func (s Sint256) Sub(v Sint256) Sint256 {
 }
 
 func (s Sint256) Mul(v Sint256) Sint256 {
-	if s.x.Eq(MinNegValue) || v.x.Eq(MinNegValue) {
+	if s.x.Eq(utils.MinNegValue) || v.x.Eq(utils.MinNegValue) {
 		panic(goja.NewSymbol("overflow in signed multiplication"))
 	}
 	p, q := uint256.NewInt(0).Abs(s.x), uint256.NewInt(0).Abs(v.x)
@@ -109,7 +107,7 @@ func (s Sint256) Mul(v Sint256) Sint256 {
 }
 
 func (s Sint256) Div(v Sint256) Sint256 {
-	if s.x.Eq(MinNegValue) || v.x.Eq(MinNegValue) {
+	if s.x.Eq(utils.MinNegValue) || v.x.Eq(utils.MinNegValue) {
 		panic(goja.NewSymbol("overflow in division"))
 	}
 	if v.x.IsZero() {
@@ -142,15 +140,15 @@ func (s Sint256) Gte(v Sint256) bool {
 }
 
 func (s Sint256) GtNum(v int64) bool {
-	if v > int64(MaxSafeInteger) || -v > int64(MaxSafeInteger) {
-		panic(goja.NewSymbol("larger than Number.MAX_SAFE_INTEGER"))
+	if v > int64(utils.MaxSafeInteger) || -v > int64(utils.MaxSafeInteger) {
+		panic(utils.LargerThanMaxInteger)
 	}
 	return s.x.Sgt(S256(v).x)
 }
 
 func (s Sint256) GteNum(v int64) bool {
-	if v > int64(MaxSafeInteger) || -v > int64(MaxSafeInteger) {
-		panic(goja.NewSymbol("larger than Number.MAX_SAFE_INTEGER"))
+	if v > int64(utils.MaxSafeInteger) || -v > int64(utils.MaxSafeInteger) {
+		panic(utils.LargerThanMaxInteger)
 	}
 	return !S256(v).x.Sgt(s.x)
 }
@@ -164,15 +162,15 @@ func (s Sint256) Lte(v Sint256) bool {
 }
 
 func (s Sint256) LtNum(v int64) bool {
-	if v > int64(MaxSafeInteger) || -v > int64(MaxSafeInteger) {
-		panic(goja.NewSymbol("larger than Number.MAX_SAFE_INTEGER"))
+	if v > int64(utils.MaxSafeInteger) || -v > int64(utils.MaxSafeInteger) {
+		panic(utils.LargerThanMaxInteger)
 	}
 	return s.x.Slt(S256(v).x)
 }
 
 func (s Sint256) LteNum(v int64) bool {
-	if v > int64(MaxSafeInteger) {
-		panic(goja.NewSymbol("larger than Number.MAX_SAFE_INTEGER"))
+	if v > int64(utils.MaxSafeInteger) {
+		panic(utils.LargerThanMaxInteger)
 	}
 	return !S256(v).x.Slt(s.x)
 }
@@ -184,7 +182,7 @@ func (s Sint256) IsSafeInteger() bool {
 		u64, overflow = y.Uint64WithOverflow()
 	}
 	u64, overflow = s.x.Uint64WithOverflow()
-	return u64 <= MaxSafeInteger && !overflow
+	return u64 <= utils.MaxSafeInteger && !overflow
 }
 
 func (s Sint256) ToSafeInteger() int64 {
@@ -194,7 +192,7 @@ func (s Sint256) ToSafeInteger() int64 {
 		u64, overflow = y.Uint64WithOverflow()
 	}
 	u64, overflow = s.x.Uint64WithOverflow()
-	safe := u64 <= MaxSafeInteger && !overflow
+	safe := u64 <= utils.MaxSafeInteger && !overflow
 	if !safe {
 		panic(goja.NewSymbol("Overflow in ToSafeInteger"))
 	}

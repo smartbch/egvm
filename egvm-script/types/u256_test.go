@@ -7,6 +7,8 @@ import (
 	"github.com/dop251/goja"
 	gethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
+
+	"github.com/smartbch/pureauth/egvm-script/utils"
 )
 
 const (
@@ -226,7 +228,7 @@ func TestU256Add(t *testing.T) {
 
 	// overflow
 	vm = setupGojaVmForU256()
-	v3, err := vm.RunString(fmt.Sprintf(U256UnsafeAddScriptTemplate, MaxSafeInteger, MaxSafeInteger))
+	v3, err := vm.RunString(fmt.Sprintf(U256UnsafeAddScriptTemplate, utils.MaxSafeInteger, utils.MaxSafeInteger))
 	require.NoError(t, err)
 	require.EqualValues(t, "0x3ffffffffffffe", v3.String())
 }
@@ -275,7 +277,7 @@ func TestU256Mul(t *testing.T) {
 
 	// overflow
 	vm = setupGojaVmForU256()
-	v3, err := vm.RunString(fmt.Sprintf(U256UnsafeMulScriptTemplate, 2, MaxSafeInteger))
+	v3, err := vm.RunString(fmt.Sprintf(U256UnsafeMulScriptTemplate, 2, utils.MaxSafeInteger))
 	require.NoError(t, err)
 	require.EqualValues(t, "0x3ffffffffffffe", v3.String())
 }

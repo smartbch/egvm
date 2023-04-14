@@ -184,12 +184,8 @@ func (pub PublicKey) Hex(compressed bool) string {
 }
 
 func (pub PublicKey) toBuf(f goja.FunctionCall, vm *goja.Runtime, compressed bool) goja.Value {
-	if len(f.Arguments) != 1 {
+	if len(f.Arguments) != 0 {
 		panic(utils.IncorrectArgumentCount)
-	}
-	compressed, ok := f.Arguments[0].Export().(bool)
-	if !ok {
-		panic(goja.NewSymbol("The first argument must be boolean"))
 	}
 	return vm.ToValue(vm.NewArrayBuffer(pub.key.Bytes(compressed)))
 }

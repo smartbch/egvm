@@ -45,6 +45,7 @@ func RegisterFunctions(vm *goja.Runtime) {
 	vm.Set("Keccak256", extension.Keccak256)
 	vm.Set("Sha256", extension.Sha256)
 	vm.Set("Ripemd160", extension.Ripemd160)
+	vm.Set("XxHash", extension.XxHash)
 
 	// buffer functions
 	vm.Set("BufConcat", extension.BufConcat)

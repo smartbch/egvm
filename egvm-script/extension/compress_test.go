@@ -1,10 +1,10 @@
 package extension
 
 import (
-	gethcmn "github.com/ethereum/go-ethereum/common"
 	"testing"
 
 	"github.com/dop251/goja"
+	gethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 )
 

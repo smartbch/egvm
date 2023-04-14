@@ -2,10 +2,11 @@ package extension
 
 import (
 	"crypto/sha256"
-	"github.com/cespare/xxhash/v2"
+	"encoding/binary"
 	"io"
 	"unicode"
 
+	"github.com/cespare/xxhash/v2"
 	"github.com/dop251/goja"
 	"golang.org/x/crypto/ripemd160"
 	"golang.org/x/crypto/sha3"
@@ -65,5 +66,7 @@ func Ripemd160(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
 func XxHash(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
 	h := xxhash.New()
 	hashFunc(f, vm, h)
-	return vm.ToValue(h.Sum64())
+	result := make([]byte, 8)
+	binary.BigEndian.PutUint64(result, h.Sum64())
+	return vm.ToValue(vm.NewArrayBuffer(result))
 }

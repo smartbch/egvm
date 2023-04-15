@@ -3,6 +3,7 @@ module github.com/smartbch/pureauth
 go 1.18
 
 require (
+	github.com/OneOfOne/xxhash v1.2.2
 	github.com/cespare/xxhash/v2 v2.2.0
 	github.com/dop251/goja v0.0.0-20230122112309-96b1610dd4f7
 	github.com/ecies/go/v2 v2.0.5
@@ -16,6 +17,7 @@ require (
 	github.com/tinylib/msgp v1.0.2
 	github.com/tyler-smith/go-bip32 v1.0.0
 	github.com/vechain/go-ecvrf v0.0.0-20220525125849-96fa0442e765
+	github.com/zeebo/xxh3 v1.0.2
 	golang.org/x/crypto v0.7.0
 	modernc.org/b/v2 v2.1.0
 )
@@ -31,6 +33,7 @@ require (
 	github.com/dlclark/regexp2 v1.7.0 // indirect
 	github.com/gcash/bchlog v0.0.0-20180913005452-b4f036f92fa6 // indirect
 	github.com/go-sourcemap/sourcemap v2.1.3+incompatible // indirect
+	github.com/klauspost/cpuid/v2 v2.0.9 // indirect
 	github.com/philhofer/fwd v1.0.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/zquestz/grab v0.0.0-20190224022517-abcee96e61b1 // indirect

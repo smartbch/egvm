@@ -2,12 +2,13 @@ package extension
 
 import (
 	"crypto/sha256"
-	"encoding/binary"
 	"io"
 	"unicode"
 
+	xxh32 "github.com/OneOfOne/xxhash"
 	"github.com/cespare/xxhash/v2"
 	"github.com/dop251/goja"
+	"github.com/zeebo/xxh3"
 	"golang.org/x/crypto/ripemd160"
 	"golang.org/x/crypto/sha3"
 
@@ -63,10 +64,20 @@ func Ripemd160(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
 	return vm.ToValue(vm.NewArrayBuffer(h.Sum(nil)))
 }
 
+func XxHash32(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
+	h := xxh32.New32()
+	hashFunc(f, vm, h)
+	return vm.ToValue(vm.NewArrayBuffer(h.Sum(nil)))
+}
+
 func XxHash64(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
 	h := xxhash.New()
 	hashFunc(f, vm, h)
-	result := make([]byte, 8)
-	binary.BigEndian.PutUint64(result, h.Sum64())
-	return vm.ToValue(vm.NewArrayBuffer(result))
+	return vm.ToValue(vm.NewArrayBuffer(h.Sum(nil)))
+}
+
+func XxHash128(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
+	h := xxh3.New()
+	hashFunc(f, vm, h)
+	return vm.ToValue(vm.NewArrayBuffer(h.Sum(nil)))
 }

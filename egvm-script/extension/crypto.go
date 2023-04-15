@@ -160,6 +160,15 @@ func (prv PrivateKey) Serialize(f goja.FunctionCall, vm *goja.Runtime) goja.Valu
 	return vm.ToValue(vm.NewArrayBuffer(prv.key.Bytes()))
 }
 
+func (prv PrivateKey) Decrypt(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
+	buf := utils.GetOneArrayBuffer(f)
+	bz, err := ecies.Decrypt(prv.key, buf)
+	if err != nil {
+		return vm.ToValue([2]any{nil, false})
+	}
+	return vm.ToValue([2]any{vm.NewArrayBuffer(bz), true})
+}
+
 func (pub PublicKey) Decapsulate(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
 	if len(f.Arguments) != 1 {
 		panic(utils.IncorrectArgumentCount)
@@ -196,15 +205,6 @@ func (pub PublicKey) SerializeCompressed(f goja.FunctionCall, vm *goja.Runtime) 
 
 func (pub PublicKey) SerializeUncompressed(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
 	return pub.toBuf(f, vm, false)
-}
-
-func (prv PrivateKey) Decrypt(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
-	buf := utils.GetOneArrayBuffer(f)
-	bz, err := ecies.Decrypt(prv.key, buf)
-	if err != nil {
-		return vm.ToValue([2]any{nil, false})
-	}
-	return vm.ToValue([2]any{vm.NewArrayBuffer(bz), true})
 }
 
 func (pub PublicKey) Encrypt(f goja.FunctionCall, vm *goja.Runtime) goja.Value {

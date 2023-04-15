@@ -28,7 +28,36 @@ const (
 		const publicKey = privateKey.GetPublicKey()
 		const publicKeyToCompressedBz = publicKey.SerializeCompressed()
 		const publicKeyToUncompressedBz = publicKey.SerializeUncompressed()
-		
+	`
+
+	PrivateKeyAndPublicKeyEncryptionScriptTemplate = `
+		const privateKeyHex = 'c9cb992b13141bb3326d028020030f33b92ea9a64b6530291e7876938bd31479'
+		const privateKeyBuf = HexToBuf(privateKeyHex)
+		const privateKey = BufToPrivateKey(privateKeyBuf)
+
+		const publicKey = privateKey.GetPublicKey()
+
+		const message = new Uint8Array([8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8]).buffer
+		const nonce = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]).buffer
+		const encryptedMsg = publicKey.Encrypt(message, nonce)
+
+		const [decryptedMsg, ok] = privateKey.Decrypt(encryptedMsg)
+	`
+
+	PrivateKeyAndPublicKeySecretScriptTemplate = `
+		const privateKeyHex1 = 'c9cb992b13141bb3326d028020030f33b92ea9a64b6530291e7876938bd31479'
+		const privateKeyBuf1 = HexToBuf(privateKeyHex1)
+		const privateKey1 = BufToPrivateKey(privateKeyBuf1)
+
+		const privateKeyHex2 = '8cc74af1645ba43b2fa8e43de48773330589799260552d16081d985a8419a565'
+		const privateKeyBuf2 = HexToBuf(privateKeyHex2)
+		const privateKey2 = BufToPrivateKey(privateKeyBuf2)
+
+		const publicKey1 = privateKey1.GetPublicKey()
+		const publicKey2 = privateKey2.GetPublicKey()
+
+		const sk1 = privateKey1.Encapsulate(publicKey2)
+		const sk2 = publicKey1.Decapsulate(privateKey2)
 	`
 )
 
@@ -78,4 +107,32 @@ func TestPrivateKeyAndPublicKeyBasic(t *testing.T) {
 	require.EqualValues(t, "02dde6c067f5e1a641dedab654cbbd9c3b4c6f8adbf2aeb17c6500319d2c08f08e", publicKeyToCompressedBzHex)
 	require.EqualValues(t, "04dde6c067f5e1a641dedab654cbbd9c3b4c6f8adbf2aeb17c6500319d2c08f08ec14990f4beca82491ca7134e7c637a35073df4e4ef8ee4251f5b4570f222777a",
 		publicKeyToUncompressedBzHex)
+}
+
+func TestPrivateKeyAndPublicKeyEncryption(t *testing.T) {
+	vm := setupGojaVmForCrypto()
+	_, err := vm.RunString(PrivateKeyAndPublicKeyEncryptionScriptTemplate)
+	require.NoError(t, err)
+
+	encryptedMsg := vm.Get("encryptedMsg").Export().(goja.ArrayBuffer)
+	encryptedMsgHex := gethcmn.Bytes2Hex(encryptedMsg.Bytes())
+	decryptedMsg := vm.Get("decryptedMsg").Export().(goja.ArrayBuffer)
+	decryptedMsgHex := gethcmn.Bytes2Hex(decryptedMsg.Bytes())
+	ok := vm.Get("ok").Export().(bool)
+	require.True(t, ok)
+	require.EqualValues(t, "040447c2dcdd17d5a65b95a697304212da4b8064486d0862eb66090632bb320f71286f9d8fa99affd10be414bec4be093a0a50c70e78fe4d439ef8e1a8762a87010102030405060708090a0b0c0d0e0f10f1bf1dd69b1e370effb15b45d0c9814429fbaaad106c9d4e0fa5bdef4c24ff6d",
+		encryptedMsgHex)
+	require.EqualValues(t, "08080808080808080808080808080808", decryptedMsgHex)
+}
+
+func TestPrivateKeyAndPublicKeySecret(t *testing.T) {
+	vm := setupGojaVmForCrypto()
+	_, err := vm.RunString(PrivateKeyAndPublicKeySecretScriptTemplate)
+	require.NoError(t, err)
+
+	sk1 := vm.Get("sk1").Export().(goja.ArrayBuffer)
+	sk1Hex := gethcmn.Bytes2Hex(sk1.Bytes())
+	sk2 := vm.Get("sk2").Export().(goja.ArrayBuffer)
+	sk2Hex := gethcmn.Bytes2Hex(sk2.Bytes())
+	require.EqualValues(t, sk1Hex, sk2Hex)
 }

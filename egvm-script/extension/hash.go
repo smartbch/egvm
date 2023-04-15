@@ -63,7 +63,7 @@ func Ripemd160(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
 	return vm.ToValue(vm.NewArrayBuffer(h.Sum(nil)))
 }
 
-func XxHash(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
+func XxHash64(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
 	h := xxhash.New()
 	hashFunc(f, vm, h)
 	result := make([]byte, 8)

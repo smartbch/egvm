@@ -14,7 +14,7 @@ const (
 		const keccackHash = Keccak256(buffer1)
 		const sha256Hash = Sha256(buffer1)
 		const ripemdHash = Ripemd160(buffer1)
-		const xxhashHash = XxHash(buffer1)
+		const xxhashHash = XxHash64(buffer1)
 	`
 )
 
@@ -23,7 +23,7 @@ func setupGojaVmForHash() *goja.Runtime {
 	vm.Set("Keccak256", Keccak256)
 	vm.Set("Sha256", Sha256)
 	vm.Set("Ripemd160", Ripemd160)
-	vm.Set("XxHash", XxHash)
+	vm.Set("XxHash64", XxHash64)
 	return vm
 }
 

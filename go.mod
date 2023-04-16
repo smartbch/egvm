@@ -14,7 +14,7 @@ require (
 	github.com/holiman/uint256 v1.2.2
 	github.com/klauspost/compress v1.16.3
 	github.com/stretchr/testify v1.8.2
-	github.com/tinylib/msgp v1.0.2
+	github.com/tinylib/msgp v1.1.6
 	github.com/tyler-smith/go-bip32 v1.0.0
 	github.com/vechain/go-ecvrf v0.0.0-20220525125849-96fa0442e765
 	github.com/zeebo/xxh3 v1.0.2
@@ -34,7 +34,7 @@ require (
 	github.com/gcash/bchlog v0.0.0-20180913005452-b4f036f92fa6 // indirect
 	github.com/go-sourcemap/sourcemap v2.1.3+incompatible // indirect
 	github.com/klauspost/cpuid/v2 v2.0.9 // indirect
-	github.com/philhofer/fwd v1.0.0 // indirect
+	github.com/philhofer/fwd v1.1.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/zquestz/grab v0.0.0-20190224022517-abcee96e61b1 // indirect
 	golang.org/x/sys v0.6.0 // indirect

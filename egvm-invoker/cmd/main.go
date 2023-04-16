@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/smartbch/pureauth/egvm-invoker/executor"
-	"github.com/smartbch/pureauth/egvm-invoker/types"
+	"github.com/smartbch/pureauth/egvm-script/types"
 )
 
 func main() {

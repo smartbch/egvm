@@ -67,7 +67,7 @@ func Ripemd160(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
 func XxHash32(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
 	h := xxh32.New32()
 	hashFunc(f, vm, h)
-	return vm.ToValue(vm.NewArrayBuffer(h.Sum(nil)))
+	return vm.ToValue(h.Sum32())
 }
 
 func XxHash64(f goja.FunctionCall, vm *goja.Runtime) goja.Value {

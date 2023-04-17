@@ -2,7 +2,6 @@ package executor
 
 import (
 	"bufio"
-	"encoding/json"
 	"io"
 	"os"
 	"os/exec"
@@ -20,6 +19,7 @@ func (b *Sandbox) executeJob(job *types.LambdaJob) (*types.LambdaResult, error) 
 	input, _ := job.MarshalMsg(nil)
 	reader := bufio.NewReader(b.stdout)
 	scanner := bufio.NewScanner(reader)
+
 	b.stdin.Write(input)
 	b.stdin.Write([]byte("\n"))
 	var out []byte
@@ -28,7 +28,7 @@ func (b *Sandbox) executeJob(job *types.LambdaJob) (*types.LambdaResult, error) 
 		break
 	}
 	var res types.LambdaResult
-	err := json.Unmarshal(out, &res)
+	_, err := res.UnmarshalMsg(out)
 	if err != nil {
 		return nil, err
 	}
@@ -36,14 +36,10 @@ func (b *Sandbox) executeJob(job *types.LambdaJob) (*types.LambdaResult, error) 
 }
 
 func NewAndStartSandbox(name string) *Sandbox {
-	cmd := exec.Command("./new_sandbox.sh", name)
-	out, err := cmd.Output()
-	if err != nil {
-		panic(err)
-	}
-	if string(out) != "success" {
-		panic("new sandbox failed!")
-	}
+	cmd := exec.Command("./egvmscript")
+	//if string(out) != "success" {
+	//	panic("new sandbox failed!")
+	//}
 	stdin, err := cmd.StdinPipe()
 	if nil != err {
 		panic("Error obtaining stdin: " + err.Error())
@@ -53,6 +49,11 @@ func NewAndStartSandbox(name string) *Sandbox {
 		panic("Error obtaining stdout: " + err.Error())
 	}
 	cmd.Stderr = os.Stderr
-
+	go func() {
+		err := cmd.Run()
+		if err != nil {
+			panic(err)
+		}
+	}()
 	return &Sandbox{name: name, stdin: stdin, stdout: stdout}
 }

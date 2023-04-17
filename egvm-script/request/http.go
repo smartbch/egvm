@@ -6,7 +6,6 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
-	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -32,7 +31,7 @@ func init() {
 	var err error
 	tlsConfig, err = loadTlsConfig(TrustedCertsPath)
 	if err != nil {
-		fmt.Printf("err: %v\n", err)
+		//fmt.Printf("err: %v\n", err)
 		panic("cannot load trusted certificates")
 	}
 }

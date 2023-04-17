@@ -5,6 +5,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/smartbch/pureauth/keygrantor"
 	"io"
 	"os"
 
@@ -12,7 +13,6 @@ import (
 	"github.com/tyler-smith/go-bip32"
 
 	"github.com/smartbch/pureauth/egvm-script/types"
-	"github.com/smartbch/pureauth/keygrantor"
 )
 
 var privKey *bip32.Key

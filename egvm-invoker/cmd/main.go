@@ -2,8 +2,6 @@ package main
 
 import (
 	"compress/gzip"
-	"encoding/hex"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -41,7 +39,7 @@ func addHttpHandler(m *executor.SandboxManager) {
 			return
 		}
 		var job types.LambdaJob
-		err = json.Unmarshal(body, &job)
+		_, err = job.UnmarshalMsg(body)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			w.Write([]byte("failed to unmarshal request body"))
@@ -53,14 +51,14 @@ func addHttpHandler(m *executor.SandboxManager) {
 			w.Write([]byte("failed to execute lambda job"))
 			return
 		}
-		out, err := json.Marshal(result)
+		out, err := result.MarshalMsg(nil)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte("failed to marshal result body"))
 			return
 		}
 		//todo: gzip the response
-		w.Write([]byte(hex.EncodeToString(out)))
+		w.Write(out)
 		return
 	})
 }

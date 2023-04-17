@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	defaultSandboxNums = 3
+	defaultSandboxNums = 1
 )
 
 type SandboxManager struct {

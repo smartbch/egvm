@@ -21,3 +21,6 @@ keygrantor/cmd/cmd
 .idea
 lambdascript/cmd/cmd
 egvm-script/cmd/cmd
+egvm-invoker/cmd/egvmscript
+egvm-invoker/cmd/invoker
+egvm-invoker/cmd/tester

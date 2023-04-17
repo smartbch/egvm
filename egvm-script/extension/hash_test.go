@@ -59,5 +59,4 @@ func TestHashFunctions(t *testing.T) {
 	require.EqualValues(t, "b1005c2e2494c7a9", xxhash64HashHex)
 	require.EqualValues(t, "3110682add3b6d6c9223d40cc1d4797e", xxhash128HashHex)
 	require.EqualValues(t, 3772117828, xxhash32Int)
-
 }

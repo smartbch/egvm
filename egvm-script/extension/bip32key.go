@@ -2,6 +2,7 @@ package extension
 
 import (
 	"fmt"
+	"math"
 
 	"github.com/dop251/goja"
 	ecies "github.com/ecies/go/v2"
@@ -79,14 +80,21 @@ func (key Bip32Key) DeriveWithBytes32(f goja.FunctionCall, vm *goja.Runtime) goj
 }
 
 func (key Bip32Key) Derive(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
+	if len(f.Arguments) != 5 {
+		// BIP-44
+		// m / purpose' / coin' / account' / change / address_index
+		panic(utils.IncorrectArgumentCount)
+	}
+
 	child := key.key
 	for i, arg := range f.Arguments {
-		n, ok := arg.Export().(uint32)
-		if !ok {
+		n, ok := arg.Export().(int64)
+		if !ok || n < 0 || n > math.MaxUint32 {
 			panic(goja.NewSymbol(fmt.Sprintf("The argument #%d is not uint32", i)))
 		}
+
 		var err error
-		child, err = child.NewChildKey(n)
+		child, err = child.NewChildKey(uint32(n))
 		if err != nil {
 			panic(vm.ToValue("Error in Derive: " + err.Error()))
 		}

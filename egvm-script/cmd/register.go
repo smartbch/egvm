@@ -79,6 +79,11 @@ func RegisterFunctions(vm *goja.Runtime) {
 	vm.Set("SignTxAndSerialize", extension.SignTxAndSerialize)
 	vm.Set("ParseTxInHex", extension.ParseTxInHex)
 
+	// bip32 key
+	vm.Set("GenerateRandomBip32Key", extension.GenerateRandomBip32Key)
+	vm.Set("B58ToBip32Key", extension.B58ToBip32Key)
+	vm.Set("BufToBip32Key", extension.BufToBip32Key)
+
 	// ---------- http(s) request ----------
 
 	vm.Set("HttpRequest", request.HttpRequest)

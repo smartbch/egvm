@@ -43,10 +43,23 @@ func (z *LambdaJob) DecodeMsg(dc *msgp.Reader) (err error) {
 				return
 			}
 		case "inputs":
-			z.Inputs, err = dc.ReadBytes(z.Inputs)
+			var zb0002 uint32
+			zb0002, err = dc.ReadArrayHeader()
 			if err != nil {
 				err = msgp.WrapError(err, "Inputs")
 				return
+			}
+			if cap(z.Inputs) >= int(zb0002) {
+				z.Inputs = (z.Inputs)[:zb0002]
+			} else {
+				z.Inputs = make([][]byte, zb0002)
+			}
+			for za0001 := range z.Inputs {
+				z.Inputs[za0001], err = dc.ReadBytes(z.Inputs[za0001])
+				if err != nil {
+					err = msgp.WrapError(err, "Inputs", za0001)
+					return
+				}
 			}
 		case "state":
 			z.State, err = dc.ReadBytes(z.State)
@@ -103,10 +116,17 @@ func (z *LambdaJob) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = en.WriteBytes(z.Inputs)
+	err = en.WriteArrayHeader(uint32(len(z.Inputs)))
 	if err != nil {
 		err = msgp.WrapError(err, "Inputs")
 		return
+	}
+	for za0001 := range z.Inputs {
+		err = en.WriteBytes(z.Inputs[za0001])
+		if err != nil {
+			err = msgp.WrapError(err, "Inputs", za0001)
+			return
+		}
 	}
 	// write "state"
 	err = en.Append(0xa5, 0x73, 0x74, 0x61, 0x74, 0x65)
@@ -136,7 +156,10 @@ func (z *LambdaJob) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.AppendString(o, z.Config)
 	// string "inputs"
 	o = append(o, 0xa6, 0x69, 0x6e, 0x70, 0x75, 0x74, 0x73)
-	o = msgp.AppendBytes(o, z.Inputs)
+	o = msgp.AppendArrayHeader(o, uint32(len(z.Inputs)))
+	for za0001 := range z.Inputs {
+		o = msgp.AppendBytes(o, z.Inputs[za0001])
+	}
 	// string "state"
 	o = append(o, 0xa5, 0x73, 0x74, 0x61, 0x74, 0x65)
 	o = msgp.AppendBytes(o, z.State)
@@ -180,10 +203,23 @@ func (z *LambdaJob) UnmarshalMsg(bts []byte) (o []byte, err error) {
 				return
 			}
 		case "inputs":
-			z.Inputs, bts, err = msgp.ReadBytesBytes(bts, z.Inputs)
+			var zb0002 uint32
+			zb0002, bts, err = msgp.ReadArrayHeaderBytes(bts)
 			if err != nil {
 				err = msgp.WrapError(err, "Inputs")
 				return
+			}
+			if cap(z.Inputs) >= int(zb0002) {
+				z.Inputs = (z.Inputs)[:zb0002]
+			} else {
+				z.Inputs = make([][]byte, zb0002)
+			}
+			for za0001 := range z.Inputs {
+				z.Inputs[za0001], bts, err = msgp.ReadBytesBytes(bts, z.Inputs[za0001])
+				if err != nil {
+					err = msgp.WrapError(err, "Inputs", za0001)
+					return
+				}
 			}
 		case "state":
 			z.State, bts, err = msgp.ReadBytesBytes(bts, z.State)
@@ -205,7 +241,11 @@ func (z *LambdaJob) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *LambdaJob) Msgsize() (s int) {
-	s = 1 + 7 + msgp.StringPrefixSize + len(z.Script) + 5 + msgp.StringPrefixSize + len(z.Cert) + 7 + msgp.StringPrefixSize + len(z.Config) + 7 + msgp.BytesPrefixSize + len(z.Inputs) + 6 + msgp.BytesPrefixSize + len(z.State)
+	s = 1 + 7 + msgp.StringPrefixSize + len(z.Script) + 5 + msgp.StringPrefixSize + len(z.Cert) + 7 + msgp.StringPrefixSize + len(z.Config) + 7 + msgp.ArrayHeaderSize
+	for za0001 := range z.Inputs {
+		s += msgp.BytesPrefixSize + len(z.Inputs[za0001])
+	}
+	s += 6 + msgp.BytesPrefixSize + len(z.State)
 	return
 }
 
@@ -228,10 +268,23 @@ func (z *LambdaResult) DecodeMsg(dc *msgp.Reader) (err error) {
 		}
 		switch msgp.UnsafeString(field) {
 		case "outputs":
-			z.Outputs, err = dc.ReadBytes(z.Outputs)
+			var zb0002 uint32
+			zb0002, err = dc.ReadArrayHeader()
 			if err != nil {
 				err = msgp.WrapError(err, "Outputs")
 				return
+			}
+			if cap(z.Outputs) >= int(zb0002) {
+				z.Outputs = (z.Outputs)[:zb0002]
+			} else {
+				z.Outputs = make([][]byte, zb0002)
+			}
+			for za0001 := range z.Outputs {
+				z.Outputs[za0001], err = dc.ReadBytes(z.Outputs[za0001])
+				if err != nil {
+					err = msgp.WrapError(err, "Outputs", za0001)
+					return
+				}
 			}
 		case "state":
 			z.State, err = dc.ReadBytes(z.State)
@@ -258,10 +311,17 @@ func (z *LambdaResult) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = en.WriteBytes(z.Outputs)
+	err = en.WriteArrayHeader(uint32(len(z.Outputs)))
 	if err != nil {
 		err = msgp.WrapError(err, "Outputs")
 		return
+	}
+	for za0001 := range z.Outputs {
+		err = en.WriteBytes(z.Outputs[za0001])
+		if err != nil {
+			err = msgp.WrapError(err, "Outputs", za0001)
+			return
+		}
 	}
 	// write "state"
 	err = en.Append(0xa5, 0x73, 0x74, 0x61, 0x74, 0x65)
@@ -282,7 +342,10 @@ func (z *LambdaResult) MarshalMsg(b []byte) (o []byte, err error) {
 	// map header, size 2
 	// string "outputs"
 	o = append(o, 0x82, 0xa7, 0x6f, 0x75, 0x74, 0x70, 0x75, 0x74, 0x73)
-	o = msgp.AppendBytes(o, z.Outputs)
+	o = msgp.AppendArrayHeader(o, uint32(len(z.Outputs)))
+	for za0001 := range z.Outputs {
+		o = msgp.AppendBytes(o, z.Outputs[za0001])
+	}
 	// string "state"
 	o = append(o, 0xa5, 0x73, 0x74, 0x61, 0x74, 0x65)
 	o = msgp.AppendBytes(o, z.State)
@@ -308,10 +371,23 @@ func (z *LambdaResult) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		}
 		switch msgp.UnsafeString(field) {
 		case "outputs":
-			z.Outputs, bts, err = msgp.ReadBytesBytes(bts, z.Outputs)
+			var zb0002 uint32
+			zb0002, bts, err = msgp.ReadArrayHeaderBytes(bts)
 			if err != nil {
 				err = msgp.WrapError(err, "Outputs")
 				return
+			}
+			if cap(z.Outputs) >= int(zb0002) {
+				z.Outputs = (z.Outputs)[:zb0002]
+			} else {
+				z.Outputs = make([][]byte, zb0002)
+			}
+			for za0001 := range z.Outputs {
+				z.Outputs[za0001], bts, err = msgp.ReadBytesBytes(bts, z.Outputs[za0001])
+				if err != nil {
+					err = msgp.WrapError(err, "Outputs", za0001)
+					return
+				}
 			}
 		case "state":
 			z.State, bts, err = msgp.ReadBytesBytes(bts, z.State)
@@ -333,6 +409,10 @@ func (z *LambdaResult) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *LambdaResult) Msgsize() (s int) {
-	s = 1 + 8 + msgp.BytesPrefixSize + len(z.Outputs) + 6 + msgp.BytesPrefixSize + len(z.State)
+	s = 1 + 8 + msgp.ArrayHeaderSize
+	for za0001 := range z.Outputs {
+		s += msgp.BytesPrefixSize + len(z.Outputs[za0001])
+	}
+	s += 6 + msgp.BytesPrefixSize + len(z.State)
 	return
 }

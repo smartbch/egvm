@@ -24,6 +24,7 @@ func RegisterFunctions(vm *goja.Runtime) {
 	// ordered map
 	vm.Set("SerializeMaps", types.SerializeMaps)
 	vm.Set("DeserializeMap", types.DeserializeMap)
+	vm.Set("NewOrderedMapReader", types.NewOrderedMapReader)
 	vm.Set("NewOrderedIntMap", types.NewOrderedIntMap)
 	vm.Set("NewOrderedStrMap", types.NewOrderedStrMap)
 	vm.Set("NewOrderedBufMap", types.NewOrderedBufMap)
@@ -45,7 +46,10 @@ func RegisterFunctions(vm *goja.Runtime) {
 	vm.Set("Keccak256", extension.Keccak256)
 	vm.Set("Sha256", extension.Sha256)
 	vm.Set("Ripemd160", extension.Ripemd160)
+	vm.Set("XxHash32", extension.XxHash32)
 	vm.Set("XxHash64", extension.XxHash64)
+	vm.Set("XxHash128", extension.XxHash128)
+	vm.Set("XxHash32Int", extension.XxHash32Int)
 
 	// buffer functions
 	vm.Set("BufConcat", extension.BufConcat)

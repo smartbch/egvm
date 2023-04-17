@@ -105,3 +105,78 @@ func DeserializeMap(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
 	result = [2]any{mv, vm.NewArrayBuffer(b)}
 	return vm.ToValue(result)
 }
+
+type OrderedMapReader struct {
+	bz []byte
+}
+
+func NewOrderedMapReader(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
+	if len(f.Arguments) != 1 {
+		panic(utils.IncorrectArgumentCount)
+	}
+
+	buf, ok := f.Arguments[0].Export().(goja.ArrayBuffer)
+	if !ok {
+		panic(goja.NewSymbol("The first argument must be ArrayBuffer"))
+	}
+
+	b := buf.Bytes()
+	if len(b) == 0 {
+		panic(goja.NewSymbol("Empty map bytes"))
+	}
+
+	reader := OrderedMapReader{bz: b}
+	return vm.ToValue(reader)
+}
+
+// Note: Each call read only one map, and keep the remaining bytes in OrderedMapReader
+// arguments: tag uint8
+func (r *OrderedMapReader) Read(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
+	if len(f.Arguments) != 1 {
+		panic(utils.IncorrectArgumentCount)
+	}
+
+	expectedTag, ok := f.Arguments[0].Export().(int64)
+	if !ok {
+		panic(goja.NewSymbol("The first argument must be uint8"))
+	}
+
+	if expectedTag < 0 || expectedTag > int64(OrderedBufMapTag) {
+		panic(goja.NewSymbol("Invalid map tag"))
+	}
+
+	var mv goja.Value
+	tag, b, err := msgp.ReadByteBytes(r.bz)
+	if err != nil || tag > OrderedBufMapTag {
+		panic(goja.NewSymbol("Tag byte error in OrderedMapReader.Read " + err.Error()))
+	}
+
+	if tag != byte(expectedTag) {
+		panic(goja.NewSymbol("Tag byte is not equal to inputted type"))
+	}
+
+	if tag == OrderedIntMapTag {
+		im := NewOrderedIntMap()
+		b, err = im.loadFrom(b)
+		mv = vm.ToValue(im)
+	} else if tag == OrderedStrMapTag {
+		sm := NewOrderedStrMap()
+		b, err = sm.loadFrom(b)
+		mv = vm.ToValue(sm)
+	} else if tag == OrderedBufMapTag {
+		bm := NewOrderedBufMap()
+		b, err = bm.loadFrom(b)
+		mv = vm.ToValue(bm)
+	}
+
+	if err != nil {
+		panic(goja.NewSymbol("Error in loading map"))
+	}
+
+	r.bz = b
+	return vm.ToValue(mv)
+}
+
+func (r *OrderedMapReader) Reset() {
+	r.bz = r.bz[:0]
+}

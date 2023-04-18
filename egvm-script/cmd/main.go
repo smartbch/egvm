@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"runtime"
+	"syscall"
 
 	"github.com/dop251/goja"
 	"github.com/smartbch/pureauth/keygrantor"
@@ -16,6 +18,7 @@ import (
 )
 
 var privKey *bip32.Key
+var maxMemSize uint64 = 1024 * 1024 * 1024 // 1G
 
 func main() {
 	var runMode string
@@ -23,6 +26,7 @@ func main() {
 	flag.StringVar(&runMode, "m", "once", "run mode: once (default), keepalive")
 	flag.StringVar(&keygrantorUrl, "k", "127.0.0.1:8084", "keygrantor url")
 	flag.Parse()
+	setRlimit(maxMemSize)
 	var err error
 	privKey, err = keygrantor.GetKeyFromKeyGrantor(keygrantorUrl, [32]byte{})
 	if err != nil {
@@ -92,4 +96,20 @@ func readSource(filename string) ([]byte, error) {
 		return io.ReadAll(os.Stdin)
 	}
 	return os.ReadFile(filename) //nolint: gosec
+}
+
+func setRlimit(maxMemSize uint64) {
+	if runtime.GOOS == "darwin" {
+		return
+	}
+	var rLimit syscall.Rlimit
+	err := syscall.Getrlimit(syscall.RLIMIT_AS, &rLimit)
+	if err != nil {
+		panic(err)
+	}
+	limit := syscall.Rlimit{Cur: maxMemSize, Max: rLimit.Max}
+	err = syscall.Setrlimit(syscall.RLIMIT_AS, &limit)
+	if err != nil {
+		panic(err)
+	}
 }

@@ -1,7 +1,6 @@
 package request
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/dop251/goja"
@@ -30,7 +29,4 @@ func TestHttpRequest(t *testing.T) {
 	resp := vm.Get("resp").Export().(HttpResponse)
 	require.EqualValues(t, 200, resp.StatusCode)
 	require.EqualValues(t, `{"isSuccess":true,"message":"pong"}`, resp.Body)
-
-	body := vm.Get("body").Export().(string)
-	fmt.Printf("body: %v\n", body)
 }

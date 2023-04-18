@@ -297,15 +297,35 @@ func (pub PublicKey) VrfVerify(f goja.FunctionCall, vm *goja.Runtime) goja.Value
 
 func VerifySignature(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
 	pubkey, digestHash, signature := utils.GetThreeArrayBuffers(f)
-	result := gethcrypto.VerifySignature(pubkey, digestHash, signature)
+	if len(pubkey) != 33 && len(pubkey) != 65 {
+		panic(goja.NewSymbol("invalid public key length, must be 33 or 65"))
+	}
+
+	if len(digestHash) != 32 {
+		panic(goja.NewSymbol("invalid digestHash length, must be 32"))
+	}
+
+	if len(signature) != 65 {
+		panic(goja.NewSymbol("invalid sig length, must be 65"))
+	}
+	result := gethcrypto.VerifySignature(pubkey, digestHash, signature[:64])
 	return vm.ToValue(result)
 }
 
 func Ecrecover(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
 	hash, sig := utils.GetTwoArrayBuffers(f)
+	if len(sig) != 65 {
+		panic(goja.NewSymbol("invalid sig length, must be 65"))
+	}
+
 	bz, err := gethcrypto.Ecrecover(hash, sig)
 	if err != nil {
 		panic(goja.NewSymbol("error in Ecrecover: " + err.Error()))
 	}
-	return vm.ToValue(vm.NewArrayBuffer(bz))
+
+	key, err := ecies.NewPublicKeyFromBytes(bz)
+	if err != nil {
+		panic(goja.NewSymbol("error in NewPublicKeyFromBytes: " + err.Error()))
+	}
+	return vm.ToValue(PublicKey{key: key})
 }

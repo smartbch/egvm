@@ -59,17 +59,59 @@ const (
 		const sk1 = privateKey1.Encapsulate(publicKey2)
 		const sk2 = publicKey1.Decapsulate(privateKey2)
 	`
+
+	PrivateKeyAndPublicKeyAddressScriptTemplate = `
+		const privateKeyHex1 = 'c9cb992b13141bb3326d028020030f33b92ea9a64b6530291e7876938bd31479'
+		const privateKeyBuf1 = HexToBuf(privateKeyHex1)
+		const privateKey1 = BufToPrivateKey(privateKeyBuf1)
+
+		const publicKey1 = privateKey1.GetPublicKey()
+
+		const evmAddress = publicKey1.ToEvmAddress()
+		const cashAddress = publicKey1.ToCashAddress()
+	`
+
+	VrfScriptTemplate = `
+		const privateKeyHex1 = 'c9cb992b13141bb3326d028020030f33b92ea9a64b6530291e7876938bd31479'
+		const privateKeyBuf1 = HexToBuf(privateKeyHex1)
+		const privateKey1 = BufToPrivateKey(privateKeyBuf1)
+		
+		const alpha = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]).buffer
+		const [beta1, pi] = privateKey1.VrfProve(alpha)
+
+		const publicKey1 = privateKey1.GetPublicKey()
+		const beta2 = publicKey1.VrfVerify(alpha, pi)
+	`
+
+	SignatureScriptTemplate = `
+		const privateKeyHex1 = 'c9cb992b13141bb3326d028020030f33b92ea9a64b6530291e7876938bd31479'
+		const privateKeyBuf1 = HexToBuf(privateKeyHex1)
+		const privateKey1 = BufToPrivateKey(privateKeyBuf1)
+
+		const msg = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]).buffer
+		const digestHash = Keccak256(msg)
+		const sig = privateKey1.Sign(digestHash)
+
+		const publicKey1 = privateKey1.GetPublicKey()
+		const publicKey1ToCompressedBz = publicKey1.SerializeCompressed()
+		const ok = VerifySignature(publicKey1ToCompressedBz, digestHash, sig)
+
+		const recoverPubKey = Ecrecover(digestHash, sig)
+		const recoverAddress = recoverPubKey.ToEvmAddress()
+		const address1 = publicKey1.ToEvmAddress()
+	`
 )
 
 func setupGojaVmForCrypto() *goja.Runtime {
 	vm := goja.New()
 	vm.Set("HexToBuf", HexToBuf)
-
 	vm.Set("AesGcmDecrypt", AesGcmDecrypt)
 	vm.Set("AesGcmEncrypt", AesGcmEncrypt)
-
 	vm.Set("BufToPrivateKey", BufToPrivateKey)
 	vm.Set("BufToPublicKey", BufToPublicKey)
+	vm.Set("VerifySignature", VerifySignature)
+	vm.Set("Ecrecover", Ecrecover)
+	vm.Set("Keccak256", Keccak256)
 	return vm
 }
 
@@ -135,4 +177,45 @@ func TestPrivateKeyAndPublicKeySecret(t *testing.T) {
 	sk2 := vm.Get("sk2").Export().(goja.ArrayBuffer)
 	sk2Hex := gethcmn.Bytes2Hex(sk2.Bytes())
 	require.EqualValues(t, sk1Hex, sk2Hex)
+}
+
+func TestPrivateKeyAndPublicKeyAddress(t *testing.T) {
+	vm := setupGojaVmForCrypto()
+	_, err := vm.RunString(PrivateKeyAndPublicKeyAddressScriptTemplate)
+	require.NoError(t, err)
+
+	evmAddress := vm.Get("evmAddress").Export().(goja.ArrayBuffer)
+	evmAddressHex := gethcmn.Bytes2Hex(evmAddress.Bytes())
+	cashAddress := vm.Get("cashAddress").Export().(goja.ArrayBuffer)
+	cashAddressHex := gethcmn.Bytes2Hex(cashAddress.Bytes())
+	require.EqualValues(t, "1df57cdcfdaffc7595f5104bb2732e6b98dd58c0", evmAddressHex)
+	require.True(t, gethcmn.IsHexAddress(evmAddressHex))
+	require.EqualValues(t, "f3101cbb3bed3115fbbe06cb15134f7ce2d89489", cashAddressHex)
+}
+
+func TestVrf(t *testing.T) {
+	vm := setupGojaVmForCrypto()
+	_, err := vm.RunString(VrfScriptTemplate)
+	require.NoError(t, err)
+
+	beta1 := vm.Get("beta1").Export().(goja.ArrayBuffer)
+	beta1Hex := gethcmn.Bytes2Hex(beta1.Bytes())
+	beta2 := vm.Get("beta2").Export().(goja.ArrayBuffer)
+	beta2Hex := gethcmn.Bytes2Hex(beta2.Bytes())
+	require.EqualValues(t, beta2Hex, beta1Hex)
+}
+
+func TestSignature(t *testing.T) {
+	vm := setupGojaVmForCrypto()
+	_, err := vm.RunString(SignatureScriptTemplate)
+	require.NoError(t, err)
+
+	ok := vm.Get("ok").Export().(bool)
+	require.True(t, ok)
+
+	recoverAddress := vm.Get("recoverAddress").Export().(goja.ArrayBuffer)
+	recoverAddressHex := gethcmn.Bytes2Hex(recoverAddress.Bytes())
+	address1 := vm.Get("address1").Export().(goja.ArrayBuffer)
+	address1Hex := gethcmn.Bytes2Hex(address1.Bytes())
+	require.EqualValues(t, address1Hex, recoverAddressHex)
 }

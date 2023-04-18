@@ -22,8 +22,8 @@ import (
 	"github.com/tyler-smith/go-bip32"
 )
 
-//// #include "util.h"
-//import "C"
+// #include "util.h"
+import "C"
 
 var (
 	ExtPrivKey *bip32.Key
@@ -55,11 +55,11 @@ func generateRandom64Bytes() []byte {
 
 func generateRandom32Bytes() []byte {
 	var out []byte
-	//var x C.uint16_t
-	//var retry C.int = 1
+	var x C.uint16_t
+	var retry C.int = 1
 	for i := 0; i < 32; i++ {
-		//C.rdrand16(&x, retry)
-		//out = append(out, byte(x))
+		C.rdrand16(&x, retry)
+		out = append(out, byte(x))
 	}
 	return out
 }

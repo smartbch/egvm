@@ -1,15 +1,15 @@
 package main
 
 import (
-	"bufio"
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/smartbch/pureauth/keygrantor"
 	"io"
 	"os"
 
 	"github.com/dop251/goja"
+	"github.com/smartbch/pureauth/keygrantor"
+	"github.com/tinylib/msgp/msgp"
 	"github.com/tyler-smith/go-bip32"
 
 	"github.com/smartbch/pureauth/egvm-script/types"
@@ -36,28 +36,21 @@ func main() {
 			handleError(err)
 			os.Exit(64)
 		}
-		_, err = run(string(src))
+		out, err := run(string(src))
 		if err != nil {
 			handleError(err)
 			os.Exit(64)
 		}
+		fmt.Println(out)
 	}
 }
 
 func runForever() {
 	for {
-		var script []byte
-		reader := bufio.NewReader(os.Stdin)
-		scanner := bufio.NewScanner(reader)
-		scanner.Buffer(make([]byte, 64*1024), 128*1024*1024)
-		for scanner.Scan() {
-			script = scanner.Bytes()
-			break
-		}
 		var job types.LambdaJob
-		_, err := job.UnmarshalMsg(script)
+		err := job.DecodeMsg(msgp.NewReader(os.Stdin))
 		if err != nil {
-			fmt.Println(err)
+			panic(err) //todo: log it
 		}
 		// todo: get output and covert to types.LambdaResult
 		_, err = run(job.Script)
@@ -67,7 +60,11 @@ func runForever() {
 		}
 		var res types.LambdaResult
 		bz, _ := res.MarshalMsg(nil)
-		fmt.Println(string(bz)) // write result to stdout
+		_, err = os.Stdout.Write(bz)
+		if err != nil {
+			panic(err)
+		}
+		return
 	}
 }
 
@@ -76,9 +73,9 @@ func run(script string) (goja.Value, error) {
 	RegisterFunctions(vm)
 	result, err := vm.RunString(script)
 	if err != nil {
-		return result, err
+		return nil, err
 	}
-	return nil, nil
+	return result, nil
 }
 
 func handleError(err error) {

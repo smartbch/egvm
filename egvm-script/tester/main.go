@@ -11,12 +11,12 @@ import (
 
 func main() {
 	var scriptFile string
-	var certFile string
+	var certFiles string
 	var config string
 	var inputString string
 	var stateString string
 	flag.StringVar(&scriptFile, "w", "", "script file")
-	flag.StringVar(&certFile, "f", "", "cert file")
+	flag.StringVar(&certFiles, "f", "", "cert files separated with comma")
 	flag.StringVar(&config, "c", "", "config")
 	flag.StringVar(&inputString, "i", "", "hex encoded input separated with comma")
 	flag.StringVar(&stateString, "s", "", "hex encoded state")
@@ -28,12 +28,14 @@ func main() {
 	}
 	job.Script = string(scriptB)
 	//fmt.Println(job.Script)
-	if certFile != "" {
-		certB, err := os.ReadFile(certFile)
-		if err != nil {
-			panic(err)
+	for _, certFile := range strings.Split(certFiles, ",") {
+		if certFile != "" {
+			certB, err := os.ReadFile(certFile)
+			if err != nil {
+				panic(err)
+			}
+			job.Certs = append(job.Certs, string(certB))
 		}
-		job.Cert = string(certB)
 	}
 	job.Config = config
 	var inputs [][]byte

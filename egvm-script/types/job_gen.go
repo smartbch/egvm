@@ -30,11 +30,24 @@ func (z *LambdaJob) DecodeMsg(dc *msgp.Reader) (err error) {
 				err = msgp.WrapError(err, "Script")
 				return
 			}
-		case "cert":
-			z.Cert, err = dc.ReadString()
+		case "certs":
+			var zb0002 uint32
+			zb0002, err = dc.ReadArrayHeader()
 			if err != nil {
-				err = msgp.WrapError(err, "Cert")
+				err = msgp.WrapError(err, "Certs")
 				return
+			}
+			if cap(z.Certs) >= int(zb0002) {
+				z.Certs = (z.Certs)[:zb0002]
+			} else {
+				z.Certs = make([]string, zb0002)
+			}
+			for za0001 := range z.Certs {
+				z.Certs[za0001], err = dc.ReadString()
+				if err != nil {
+					err = msgp.WrapError(err, "Certs", za0001)
+					return
+				}
 			}
 		case "config":
 			z.Config, err = dc.ReadString()
@@ -43,21 +56,21 @@ func (z *LambdaJob) DecodeMsg(dc *msgp.Reader) (err error) {
 				return
 			}
 		case "inputs":
-			var zb0002 uint32
-			zb0002, err = dc.ReadArrayHeader()
+			var zb0003 uint32
+			zb0003, err = dc.ReadArrayHeader()
 			if err != nil {
 				err = msgp.WrapError(err, "Inputs")
 				return
 			}
-			if cap(z.Inputs) >= int(zb0002) {
-				z.Inputs = (z.Inputs)[:zb0002]
+			if cap(z.Inputs) >= int(zb0003) {
+				z.Inputs = (z.Inputs)[:zb0003]
 			} else {
-				z.Inputs = make([][]byte, zb0002)
+				z.Inputs = make([][]byte, zb0003)
 			}
-			for za0001 := range z.Inputs {
-				z.Inputs[za0001], err = dc.ReadBytes(z.Inputs[za0001])
+			for za0002 := range z.Inputs {
+				z.Inputs[za0002], err = dc.ReadBytes(z.Inputs[za0002])
 				if err != nil {
-					err = msgp.WrapError(err, "Inputs", za0001)
+					err = msgp.WrapError(err, "Inputs", za0002)
 					return
 				}
 			}
@@ -91,15 +104,22 @@ func (z *LambdaJob) EncodeMsg(en *msgp.Writer) (err error) {
 		err = msgp.WrapError(err, "Script")
 		return
 	}
-	// write "cert"
-	err = en.Append(0xa4, 0x63, 0x65, 0x72, 0x74)
+	// write "certs"
+	err = en.Append(0xa5, 0x63, 0x65, 0x72, 0x74, 0x73)
 	if err != nil {
 		return
 	}
-	err = en.WriteString(z.Cert)
+	err = en.WriteArrayHeader(uint32(len(z.Certs)))
 	if err != nil {
-		err = msgp.WrapError(err, "Cert")
+		err = msgp.WrapError(err, "Certs")
 		return
+	}
+	for za0001 := range z.Certs {
+		err = en.WriteString(z.Certs[za0001])
+		if err != nil {
+			err = msgp.WrapError(err, "Certs", za0001)
+			return
+		}
 	}
 	// write "config"
 	err = en.Append(0xa6, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67)
@@ -121,10 +141,10 @@ func (z *LambdaJob) EncodeMsg(en *msgp.Writer) (err error) {
 		err = msgp.WrapError(err, "Inputs")
 		return
 	}
-	for za0001 := range z.Inputs {
-		err = en.WriteBytes(z.Inputs[za0001])
+	for za0002 := range z.Inputs {
+		err = en.WriteBytes(z.Inputs[za0002])
 		if err != nil {
-			err = msgp.WrapError(err, "Inputs", za0001)
+			err = msgp.WrapError(err, "Inputs", za0002)
 			return
 		}
 	}
@@ -148,17 +168,20 @@ func (z *LambdaJob) MarshalMsg(b []byte) (o []byte, err error) {
 	// string "script"
 	o = append(o, 0x85, 0xa6, 0x73, 0x63, 0x72, 0x69, 0x70, 0x74)
 	o = msgp.AppendString(o, z.Script)
-	// string "cert"
-	o = append(o, 0xa4, 0x63, 0x65, 0x72, 0x74)
-	o = msgp.AppendString(o, z.Cert)
+	// string "certs"
+	o = append(o, 0xa5, 0x63, 0x65, 0x72, 0x74, 0x73)
+	o = msgp.AppendArrayHeader(o, uint32(len(z.Certs)))
+	for za0001 := range z.Certs {
+		o = msgp.AppendString(o, z.Certs[za0001])
+	}
 	// string "config"
 	o = append(o, 0xa6, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67)
 	o = msgp.AppendString(o, z.Config)
 	// string "inputs"
 	o = append(o, 0xa6, 0x69, 0x6e, 0x70, 0x75, 0x74, 0x73)
 	o = msgp.AppendArrayHeader(o, uint32(len(z.Inputs)))
-	for za0001 := range z.Inputs {
-		o = msgp.AppendBytes(o, z.Inputs[za0001])
+	for za0002 := range z.Inputs {
+		o = msgp.AppendBytes(o, z.Inputs[za0002])
 	}
 	// string "state"
 	o = append(o, 0xa5, 0x73, 0x74, 0x61, 0x74, 0x65)
@@ -190,11 +213,24 @@ func (z *LambdaJob) UnmarshalMsg(bts []byte) (o []byte, err error) {
 				err = msgp.WrapError(err, "Script")
 				return
 			}
-		case "cert":
-			z.Cert, bts, err = msgp.ReadStringBytes(bts)
+		case "certs":
+			var zb0002 uint32
+			zb0002, bts, err = msgp.ReadArrayHeaderBytes(bts)
 			if err != nil {
-				err = msgp.WrapError(err, "Cert")
+				err = msgp.WrapError(err, "Certs")
 				return
+			}
+			if cap(z.Certs) >= int(zb0002) {
+				z.Certs = (z.Certs)[:zb0002]
+			} else {
+				z.Certs = make([]string, zb0002)
+			}
+			for za0001 := range z.Certs {
+				z.Certs[za0001], bts, err = msgp.ReadStringBytes(bts)
+				if err != nil {
+					err = msgp.WrapError(err, "Certs", za0001)
+					return
+				}
 			}
 		case "config":
 			z.Config, bts, err = msgp.ReadStringBytes(bts)
@@ -203,21 +239,21 @@ func (z *LambdaJob) UnmarshalMsg(bts []byte) (o []byte, err error) {
 				return
 			}
 		case "inputs":
-			var zb0002 uint32
-			zb0002, bts, err = msgp.ReadArrayHeaderBytes(bts)
+			var zb0003 uint32
+			zb0003, bts, err = msgp.ReadArrayHeaderBytes(bts)
 			if err != nil {
 				err = msgp.WrapError(err, "Inputs")
 				return
 			}
-			if cap(z.Inputs) >= int(zb0002) {
-				z.Inputs = (z.Inputs)[:zb0002]
+			if cap(z.Inputs) >= int(zb0003) {
+				z.Inputs = (z.Inputs)[:zb0003]
 			} else {
-				z.Inputs = make([][]byte, zb0002)
+				z.Inputs = make([][]byte, zb0003)
 			}
-			for za0001 := range z.Inputs {
-				z.Inputs[za0001], bts, err = msgp.ReadBytesBytes(bts, z.Inputs[za0001])
+			for za0002 := range z.Inputs {
+				z.Inputs[za0002], bts, err = msgp.ReadBytesBytes(bts, z.Inputs[za0002])
 				if err != nil {
-					err = msgp.WrapError(err, "Inputs", za0001)
+					err = msgp.WrapError(err, "Inputs", za0002)
 					return
 				}
 			}
@@ -241,9 +277,13 @@ func (z *LambdaJob) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *LambdaJob) Msgsize() (s int) {
-	s = 1 + 7 + msgp.StringPrefixSize + len(z.Script) + 5 + msgp.StringPrefixSize + len(z.Cert) + 7 + msgp.StringPrefixSize + len(z.Config) + 7 + msgp.ArrayHeaderSize
-	for za0001 := range z.Inputs {
-		s += msgp.BytesPrefixSize + len(z.Inputs[za0001])
+	s = 1 + 7 + msgp.StringPrefixSize + len(z.Script) + 6 + msgp.ArrayHeaderSize
+	for za0001 := range z.Certs {
+		s += msgp.StringPrefixSize + len(z.Certs[za0001])
+	}
+	s += 7 + msgp.StringPrefixSize + len(z.Config) + 7 + msgp.ArrayHeaderSize
+	for za0002 := range z.Inputs {
+		s += msgp.BytesPrefixSize + len(z.Inputs[za0002])
 	}
 	s += 6 + msgp.BytesPrefixSize + len(z.State)
 	return

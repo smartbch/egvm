@@ -4,7 +4,7 @@ package types
 
 type LambdaJob struct {
 	Script string   `msg:"script"` // lambdaJs
-	Cert   string   `msg:"cert"`   // certs script will access
+	Certs  []string `msg:"certs"`  // certs script will access
 	Config string   `msg:"config"` // script config
 	Inputs [][]byte `msg:"inputs"`
 	State  []byte   `msg:"state"` // to be resolved to orderedMap in sandbox

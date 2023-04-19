@@ -60,8 +60,6 @@ func RegisterFunctions(vm *goja.Runtime) {
 	vm.Set("BufEqual", extension.BufEqual)
 	vm.Set("BufCompare", extension.BufCompare)
 	vm.Set("BufReverse", extension.BufReverse)
-	vm.Set("BufToU64BE", extension.BufToU64BE)
-	vm.Set("BufToU64LE", extension.BufToU64LE)
 	vm.Set("BufToU32BE", extension.BufToU32BE)
 	vm.Set("BufToU32LE", extension.BufToU32LE)
 	vm.Set("U64ToBufBE", extension.U64ToBufBE)

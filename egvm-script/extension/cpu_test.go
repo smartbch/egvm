@@ -6,6 +6,8 @@ import (
 
 	"github.com/dop251/goja"
 	"github.com/stretchr/testify/require"
+
+	"github.com/smartbch/pureauth/egvm-script/types"
 )
 
 const (
@@ -17,7 +19,7 @@ const (
 	TSCScriptTemplate = `
 		const n = 100
 		const tscBz = GetTSC()
-		const tsc = BufToU64BE(tscBz)
+		const tsc = BufToU256(tscBz)
 
   		const startBz = GetTSCBenchStart()
 		for (let i = 0; i < n; i++) {
@@ -25,9 +27,9 @@ const (
 		}
 		const endBz = GetTSCBenchEnd()
 
-		const start = BufToU64BE(startBz)
-		const end = BufToU64BE(endBz)
-		const avg = (end - start - tsc) / n
+		const start = BufToU256(startBz)
+		const end = BufToU256(endBz)
+		const avg = end.Sub(start).Sub(tsc).Div(U256(n))
 	`
 )
 
@@ -37,7 +39,8 @@ func setupGojaVmForCPU() *goja.Runtime {
 	vm.Set("GetTSC", GetTSC)
 	vm.Set("GetTSCBenchStart", GetTSCBenchStart)
 	vm.Set("GetTSCBenchEnd", GetTSCBenchEnd)
-	vm.Set("BufToU64BE", BufToU64BE)
+	vm.Set("U256", types.U256)
+	vm.Set("BufToU256", types.BufToU256)
 	return vm
 }
 
@@ -60,7 +63,18 @@ func TestTSC(t *testing.T) {
 	_, err := vm.RunString(TSCScriptTemplate)
 	require.NoError(t, err)
 
-	avg := vm.Get("avg").Export().(float64)
+	tsc := vm.Get("tsc").Export().(types.Uint256)
+	start := vm.Get("start").Export().(types.Uint256)
+	end := vm.Get("end").Export().(types.Uint256)
+	avg := vm.Get("avg").Export().(types.Uint256)
+	require.NotZero(t, tsc)
+	require.NotZero(t, start)
+	require.NotZero(t, end)
 	require.NotZero(t, avg)
-	fmt.Printf("avg: %v\n", avg)
+	require.True(t, end.Gt(start))
+
+	fmt.Printf("tsc: %v\n", tsc.ToSafeInteger())
+	fmt.Printf("start: %v\n", start.ToSafeInteger())
+	fmt.Printf("end: %v\n", end.ToSafeInteger())
+	fmt.Printf("avg: %v\n", avg.ToSafeInteger())
 }

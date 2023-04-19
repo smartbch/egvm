@@ -83,21 +83,7 @@ func BufCompare(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
 
 func BufReverse(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
 	a := utils.GetOneArrayBuffer(f)
-	b := make([]byte, 0, len(a))
-	for i := range a {
-		b = append(b, a[len(a)-1-i])
-	}
-	return vm.ToValue(vm.NewArrayBuffer(b))
-}
-
-func BufToU64BE(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
-	bz := utils.GetOneArrayBuffer(f)
-	return vm.ToValue(binary.BigEndian.Uint64(bz))
-}
-
-func BufToU64LE(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
-	bz := utils.GetOneArrayBuffer(f)
-	return vm.ToValue(binary.LittleEndian.Uint64(bz))
+	return vm.ToValue(vm.NewArrayBuffer(bytesReverse(a)))
 }
 
 func BufToU32BE(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
@@ -136,4 +122,12 @@ func U32ToBufLE(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
 	var buf [4]byte
 	binary.LittleEndian.PutUint32(buf[:], uint32(u64))
 	return vm.ToValue(vm.NewArrayBuffer(buf[:]))
+}
+
+func bytesReverse(bz []byte) []byte {
+	rBz := make([]byte, 0, len(bz))
+	for i := range bz {
+		rBz = append(rBz, bz[len(bz)-1-i])
+	}
+	return rBz
 }

@@ -6,10 +6,28 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/dop251/goja"
 	ecies "github.com/ecies/go/v2"
+	gethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/gcash/bchd/bchec"
 	"github.com/stretchr/testify/require"
 )
+
+const (
+	MerkleProofToRootAndMatchesScriptTemplate = `
+		const proofHex = '00e0a627f0ffea60563cc47c80d2a7f1854994158a7c8b0c10fed2000000000000000000368bfe8331d7c2223d4ecad3b3b80c0341792ba8294b6c43db3de3ff198b6c75d6373f64ec5e051871de02781b00000006fc8af02b8392ee24089818aea94069eacb75ecdc69f4e40b09a89ffd6e330a17082d2c4367aeb5a45b086c05f3bbae983d6c342aa47c8cca9cd4a78eeda2a20148f2a26ca8318a551117b927ced10eaab935fe55d5b93abb9d8485657c297e6622f48afe69608a59ea420a59081920af1199fa9793867fc05e168ad6e964deaa47f0917dbfc90531a7371834cc18a4e1c5de629b88f804076411be9b42c77e8ce68662e7bc7024408aba81dcfc114195a241265fab2ba584dc3d2eaefff2f0d9023f00'
+		const proofBz = HexToBuf(proofHex)
+		
+		const [merkleRoot, txID1] = MerkleProofToRootAndMatches(proofBz)
+	`
+)
+
+func setupGojaVmForBCH() *goja.Runtime {
+	vm := goja.New()
+	vm.Set("MerkleProofToRootAndMatches", MerkleProofToRootAndMatches)
+	vm.Set("HexToBuf", HexToBuf)
+	return vm
+}
 
 func TestGetPubkeyHashHex(t *testing.T) {
 	pkScript, _ := hex.DecodeString("76a914307f40d73e01af33364901d82d5614e370f905d388ac")
@@ -95,4 +113,18 @@ func TestSignTxAndSerialize(t *testing.T) {
 	require.Len(t, signedTx.TxOut, 3)
 	require.Len(t, signedTx.TxOut[0].HexDataElements, 5)
 	require.Equal(t, "8097f6fbaa0dfdfe4f064bb650324c5e80182420", signedTx.TxOut[1].HexPubkeyHash)
+}
+
+func TestMerkleProofToRootAndMatches(t *testing.T) {
+	vm := setupGojaVmForBCH()
+	_, err := vm.RunString(MerkleProofToRootAndMatchesScriptTemplate)
+	require.NoError(t, err)
+
+	merkleRootBz := vm.Get("merkleRoot").Export().(goja.ArrayBuffer)
+	merkleRootBzHex := gethcmn.Bytes2Hex(merkleRootBz.Bytes())
+	require.EqualValues(t, "756c8b19ffe33ddb436c4b29a82b7941030cb8b3d3ca4e3d22c2d73183fe8b36", merkleRootBzHex)
+
+	txID1Bz := vm.Get("txID1").Export().(goja.ArrayBuffer)
+	txID1BzHex := gethcmn.Bytes2Hex(txID1Bz.Bytes())
+	require.EqualValues(t, "170a336efd9fa8090be4f469dcec75cbea6940a9ae18980824ee92832bf08afc", txID1BzHex)
 }

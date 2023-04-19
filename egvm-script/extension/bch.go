@@ -289,12 +289,13 @@ func MerkleProofToRootAndMatches(f goja.FunctionCall, vm *goja.Runtime) goja.Val
 	if merkleRoot == nil || mBlock.BadTree() || len(matches) == 0 {
 		panic(goja.NewSymbol("Error extracting txn matches from merkle tree traversal"))
 	}
-	result := make([]goja.ArrayBuffer, 1, len(matches))
-	hash := *merkleRoot
-	result[0] = vm.NewArrayBuffer(hash[:])
+
+	result := make([]goja.ArrayBuffer, 1, len(matches)+1)
+	hash := bytesReverse(merkleRoot.CloneBytes())
+	result[0] = vm.NewArrayBuffer(hash)
 	for _, tx := range matches {
-		hash = *tx
-		result = append(result, vm.NewArrayBuffer(hash[:]))
+		result = append(result, vm.NewArrayBuffer(bytesReverse(tx.CloneBytes())))
 	}
+
 	return vm.ToValue(result)
 }

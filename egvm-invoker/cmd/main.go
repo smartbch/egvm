@@ -29,36 +29,42 @@ func addHttpHandler(m *executor.SandboxManager) {
 		uncompressedBody, err := gzip.NewReader(r.Body)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte("failed to uncompress request body"))
+			gzipWrite(w, []byte("failed to uncompress request body"))
 			return
 		}
 		body, err := ioutil.ReadAll(uncompressedBody)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte("failed to read request body"))
+			gzipWrite(w, []byte("failed to read request body"))
 			return
 		}
 		var job types.LambdaJob
 		_, err = job.UnmarshalMsg(body)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte("failed to unmarshal request body"))
+			gzipWrite(w, []byte("failed to unmarshal request body"))
 			return
 		}
 		result, err := m.ExecuteJob(&job)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte("failed to execute lambda job"))
+			gzipWrite(w, []byte("failed to execute lambda job"))
 			return
 		}
 		out, err := result.MarshalMsg(nil)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte("failed to marshal result body"))
+			gzipWrite(w, []byte("failed to marshal result body"))
 			return
 		}
 		//todo: gzip the response
-		w.Write(out)
+		gzipWrite(w, out)
 		return
 	})
+}
+
+func gzipWrite(w http.ResponseWriter, content []byte) {
+	gw := gzip.NewWriter(w)
+	gw.Write(content)
+	gw.Close()
 }

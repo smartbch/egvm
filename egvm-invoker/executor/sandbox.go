@@ -1,7 +1,7 @@
 package executor
 
 import (
-	"bufio"
+	"github.com/tinylib/msgp/msgp"
 	"io"
 	"os"
 	"os/exec"
@@ -16,19 +16,12 @@ type Sandbox struct {
 }
 
 func (b *Sandbox) executeJob(job *types.LambdaJob) (*types.LambdaResult, error) {
-	input, _ := job.MarshalMsg(nil)
-	reader := bufio.NewReader(b.stdout)
-	scanner := bufio.NewScanner(reader)
-
-	b.stdin.Write(input)
-	b.stdin.Write([]byte("\n"))
-	var out []byte
-	for scanner.Scan() {
-		out = scanner.Bytes()
-		break
+	err := job.EncodeMsg(msgp.NewWriter(b.stdin))
+	if err != nil {
+		return nil, err
 	}
 	var res types.LambdaResult
-	_, err := res.UnmarshalMsg(out)
+	err = res.DecodeMsg(msgp.NewReader(b.stdout))
 	if err != nil {
 		return nil, err
 	}

@@ -6,7 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
+	"github.com/tinylib/msgp/msgp"
 	"net/http"
 	"time"
 
@@ -30,13 +30,16 @@ func main() {
 		panic(err)
 	}
 	defer resp.Body.Close()
-	bz, err := io.ReadAll(resp.Body)
-	var res types.LambdaResult
-	_, err = res.UnmarshalMsg(bz)
+	gr, err := gzip.NewReader(resp.Body)
 	if err != nil {
 		panic(err)
 	}
-	out, _ := json.Marshal(res)
+	var res types.LambdaResult
+	err = res.DecodeMsg(msgp.NewReader(gr))
+	if err != nil {
+		panic(err)
+	}
+	out, _ := json.MarshalIndent(res, "", "    ")
 	fmt.Println(string(out))
 }
 

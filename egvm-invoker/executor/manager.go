@@ -37,20 +37,25 @@ func (s *SandboxManager) ExecuteJob(job *types.LambdaJob) (*types.LambdaResult, 
 		return nil, errors.New("all sandbox busy, try later") // todo: add job queue?
 	}
 	res, err := box.executeJob(job)
-	s.lock.Lock()
-	s.BoxStatusMap[box] = false
-	s.lock.Unlock()
+	if err != nil {
+		s.lock.Lock()
+		s.BoxStatusMap[box] = false
+		s.lock.Unlock()
+	}
 	return res, err
 }
 
 func (s *SandboxManager) findIdleSandbox() *Sandbox {
-	s.lock.RLock()
-	defer s.lock.RUnlock()
+	var b *Sandbox
+	s.lock.Lock()
 	// take advantage of the randomness of map traversal
-	for box, busy := range s.BoxStatusMap {
-		if !busy {
-			return box
+	for box, busyOrDead := range s.BoxStatusMap {
+		if !busyOrDead {
+			b = box
+			break
 		}
 	}
+	s.BoxStatusMap[b] = true
+	s.lock.Unlock()
 	return nil
 }

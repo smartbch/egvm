@@ -84,6 +84,12 @@ func RegisterFunctions(vm *goja.Runtime) {
 	vm.Set("B58ToBip32Key", extension.B58ToBip32Key)
 	vm.Set("BufToBip32Key", extension.BufToBip32Key)
 
+	// cpu
+	vm.Set("GetCPUID", extension.GetCPUID)
+	vm.Set("GetTSC", extension.GetTSC)
+	vm.Set("GetTSCBenchStart", extension.GetTSCBenchStart)
+	vm.Set("GetTSCBenchEnd", extension.GetTSCBenchEnd)
+
 	// ---------- http(s) request ----------
 
 	vm.Set("HttpRequest", request.HttpRequest)

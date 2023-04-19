@@ -34,6 +34,11 @@ func RegisterFunctions(vm *goja.Runtime) {
 
 	// ---------- extension functions ----------
 
+	// bch
+	vm.Set("ParseTxInHex", extension.ParseTxInHex)
+	vm.Set("SignTxAndSerialize", extension.SignTxAndSerialize)
+	vm.Set("MerkleProofToRootAndMatches", extension.MerkleProofToRootAndMatches)
+
 	// aes encryption
 	vm.Set("AesGcmDecrypt", extension.AesGcmDecrypt)
 	vm.Set("AesGcmEncrypt", extension.AesGcmEncrypt)

@@ -36,9 +36,21 @@ func main() {
 	setRlimit(maxMemSize)
 
 	var err error
-	privKey, err = keygrantor.GetKeyFromKeyGrantor(keygrantorUrl, [32]byte{})
-	if err != nil {
-		//panic(err) // comment for core logic test
+	// use local rand key to replace keygrantor for dev and test on darwin
+	if runtime.GOOS == "darwin" {
+		seed, err := bip32.NewSeed()
+		if err != nil {
+			panic(err)
+		}
+		privKey, err = bip32.NewMasterKey(seed)
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		privKey, err = keygrantor.GetKeyFromKeyGrantor(keygrantorUrl, [32]byte{})
+		if err != nil {
+			panic(err) // comment for core logic test
+		}
 	}
 	if perpetualMode {
 		executeLambdaJob(false, true, 0)

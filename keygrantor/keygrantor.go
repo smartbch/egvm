@@ -10,8 +10,10 @@ import (
 	"fmt"
 	"io"
 	"math/big"
+	"math/rand"
 	"net/http"
 	"os"
+	"runtime"
 	"time"
 
 	ecies "github.com/ecies/go/v2"
@@ -54,6 +56,12 @@ func generateRandom64Bytes() []byte {
 }
 
 func generateRandom32Bytes() []byte {
+	if runtime.GOOS == "darwin" {
+		recv := make([]byte, 32)
+		_, _ = rand.Read(recv)
+		fmt.Println(recv)
+		return recv[:]
+	}
 	var out []byte
 	var x C.uint16_t
 	var retry C.int = 1

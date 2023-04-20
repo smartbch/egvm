@@ -1,18 +1,14 @@
 package request
 
 import (
-	"bytes"
-	"crypto/sha256"
-	"encoding/binary"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 
 	"github.com/dop251/goja"
-	"github.com/edgelesssys/ego/eclient"
 	gethcmn "github.com/ethereum/go-ethereum/common"
 
+	"github.com/smartbch/pureauth/egvm-script/enclaveutil"
 	"github.com/smartbch/pureauth/egvm-script/utils"
 )
 
@@ -75,7 +71,7 @@ func AttestEnclaveServer(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
 	reportBz := gethcmn.FromHex(reportResult.Result)
 	signerIDBz := gethcmn.FromHex(signerID)
 	uniqueIDBz := gethcmn.FromHex(uniqueID)
-	err = verifyEnclaveReportBz(pubKeyBz, reportBz, signerIDBz, uniqueIDBz)
+	err = enclaveutil.VerifyEnclaveReportBz(pubKeyBz, reportBz, signerIDBz, uniqueIDBz)
 	if err != nil {
 		result = [2]any{false, err.Error()}
 		return vm.ToValue(result)
@@ -83,34 +79,4 @@ func AttestEnclaveServer(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
 
 	result = [2]any{true, ""}
 	return vm.ToValue(result)
-}
-
-func verifyEnclaveReportBz(pubKey, reportBz, signerIDBz, uniqueIDBz []byte) error {
-	report, err := eclient.VerifyRemoteReport(reportBz)
-	if err != nil {
-		return err
-	}
-
-	if !bytes.Equal(report.SignerID, signerIDBz) {
-		return fmt.Errorf("signer-id not match! expected: %x, got: %x", signerIDBz, report.SignerID)
-	}
-	if !bytes.Equal(report.UniqueID, uniqueIDBz) {
-		return fmt.Errorf("unique-id not match! expected: %x, got: %x", uniqueIDBz, report.UniqueID)
-	}
-
-	hash := sha256.Sum256(pubKey)
-	if !bytes.Equal(report.Data[:len(hash)], hash[:]) {
-		return errors.New("report data does not match the pubKey's hash")
-	}
-	if report.SecurityVersion < 2 {
-		return errors.New("invalid security version")
-	}
-	if binary.LittleEndian.Uint16(report.ProductID) != 0x001 {
-		return errors.New("invalid product ID")
-	}
-	if report.Debug {
-		return errors.New("should not open debug mode")
-	}
-
-	return nil
 }

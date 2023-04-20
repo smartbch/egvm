@@ -5,7 +5,11 @@
 #define DRNG_SUCCESS 1
 #define DRNG_NOT_READY -1
 
-#define _rdrand_step(x) ({ unsigned char err; asm volatile("rdrand %0; setc %1":"=r"(*x), "=qm"(err)); err; })
+#if defined(__APPLE__)
+    #define _rdrand_step(x) ({ unsigned char err; err;})
+#else
+    #define _rdrand_step(x) ({ unsigned char err; asm volatile("rdrand %0; setc %1":"=r"(*x), "=qm"(err)); err; })
+#endif
 
 #define _rdrand16_step(x) _rdrand_step(x)
 

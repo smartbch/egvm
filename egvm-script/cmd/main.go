@@ -13,6 +13,7 @@ import (
 	"github.com/tinylib/msgp/msgp"
 	"github.com/tyler-smith/go-bip32"
 
+	"github.com/smartbch/pureauth/egvm-script/context"
 	"github.com/smartbch/pureauth/egvm-script/request"
 	"github.com/smartbch/pureauth/egvm-script/types"
 	"github.com/smartbch/pureauth/keygrantor"
@@ -62,19 +63,22 @@ func main() {
 }
 
 func executeLambdaJob(isSingleMode bool, isPerpetualMode bool, timeLimit int64) {
+	context.EGVMCtx = new(context.EGVMContext)
+	var isFirstRun = true
 	for {
 		var job types.LambdaJob
 		err := job.DecodeMsg(msgp.NewReader(os.Stdin))
 		if err != nil {
 			panic(err) //todo: log it
 		}
-		// todo: get output and covert to types.LambdaResult
+		if (isPerpetualMode && isFirstRun) || isSingleMode || timeLimit != 0 {
+			context.EGVMCtx.Set(&job)
+		}
 		_, err = run(job.Script, job.Certs, timeLimit)
 		if err != nil {
 			handleError(err)
-			continue
 		}
-		var res types.LambdaResult
+		res := context.EGVMCtx.CollectResult()
 		bz, _ := res.MarshalMsg(nil)
 		_, err = os.Stdout.Write(bz)
 		if err != nil {
@@ -82,6 +86,10 @@ func executeLambdaJob(isSingleMode bool, isPerpetualMode bool, timeLimit int64) 
 		}
 		if isSingleMode {
 			return
+		}
+		isFirstRun = false
+		if timeLimit != 0 {
+			context.EGVMCtx.Reset()
 		}
 	}
 }

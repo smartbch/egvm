@@ -25,8 +25,7 @@ func InitTrustedHttpsCerts(certs []string) {
 	var err error
 	tlsConfig, err = loadTlsConfig(certs)
 	if err != nil {
-		//fmt.Printf("err: %v\n", err)
-		//panic("cannot load trusted certificates")
+		panic("cannot load trusted certificates")
 	}
 }
 

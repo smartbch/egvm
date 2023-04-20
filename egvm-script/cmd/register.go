@@ -2,13 +2,18 @@ package main
 
 import (
 	"github.com/dop251/goja"
-
+	
+	"github.com/smartbch/pureauth/egvm-script/context"
 	"github.com/smartbch/pureauth/egvm-script/extension"
 	"github.com/smartbch/pureauth/egvm-script/request"
 	"github.com/smartbch/pureauth/egvm-script/types"
 )
 
 func registerFunctions(vm *goja.Runtime) {
+	// ---------- global variables ----------
+
+	vm.Set("EGVMCtx", context.EGVMCtx)
+
 	// ---------- types ----------
 
 	// uint256
@@ -97,4 +102,5 @@ func registerFunctions(vm *goja.Runtime) {
 
 	vm.Set("HttpsRequest", request.HttpsRequest)
 	vm.Set("AttestEnclaveServer", request.AttestEnclaveServer)
+
 }

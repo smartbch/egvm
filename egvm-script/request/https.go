@@ -12,7 +12,6 @@ import (
 	"net/url"
 	"sort"
 	"strings"
-	"time"
 
 	"github.com/dop251/goja"
 )
@@ -36,23 +35,6 @@ type HttpResponse struct {
 	StatusCode int
 	Headers    [][2]string
 	Body       string
-}
-
-func HttpRequest(method, serverURL, body string, headers ...string) HttpResponse {
-	req, err := newHttpRequest(method, serverURL, body, headers...)
-	if err != nil {
-		panic(goja.NewSymbol("Error in parsing http request: " + err.Error()))
-	}
-	client := http.Client{Timeout: 5 * time.Second}
-	resp, err := client.Do(&req)
-	if err != nil {
-		panic(goja.NewSymbol("Error in sending http request: " + err.Error()))
-	}
-	result, err := newHttpResponse(resp)
-	if err != nil {
-		panic(goja.NewSymbol("Error in parsing http response: " + err.Error()))
-	}
-	return result
 }
 
 func HttpsRequest(method, serverURL, body string, headers ...string) HttpResponse {

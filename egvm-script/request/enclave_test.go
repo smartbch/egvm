@@ -24,6 +24,7 @@ func setupGojaVmForEnclave() *goja.Runtime {
 // Note: test it with CGO_FLAGS and CGO_LDFLAGS
 func TestAttestEnclaveServer(t *testing.T) {
 	vm := setupGojaVmForEnclave()
+	tlsConfig, _ = loadTlsConfigForTest(TrustedCertsPathForTest)
 	_, err := vm.RunString(AttestScriptTemplate)
 	require.NoError(t, err)
 

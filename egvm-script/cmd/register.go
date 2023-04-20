@@ -95,7 +95,6 @@ func registerFunctions(vm *goja.Runtime) {
 
 	// ---------- http(s) request ----------
 
-	vm.Set("HttpRequest", request.HttpRequest)
 	vm.Set("HttpsRequest", request.HttpsRequest)
-
+	vm.Set("AttestEnclaveServer", request.AttestEnclaveServer)
 }

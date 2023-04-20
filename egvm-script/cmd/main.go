@@ -10,11 +10,12 @@ import (
 	"time"
 
 	"github.com/dop251/goja"
-	"github.com/smartbch/pureauth/keygrantor"
 	"github.com/tinylib/msgp/msgp"
 	"github.com/tyler-smith/go-bip32"
 
+	"github.com/smartbch/pureauth/egvm-script/request"
 	"github.com/smartbch/pureauth/egvm-script/types"
+	"github.com/smartbch/pureauth/keygrantor"
 )
 
 var privKey *bip32.Key
@@ -56,7 +57,7 @@ func executeLambdaJob(isSingleMode bool, isPerpetualMode bool, timeLimit int64) 
 			panic(err) //todo: log it
 		}
 		// todo: get output and covert to types.LambdaResult
-		_, err = run(job.Script, timeLimit)
+		_, err = run(job.Script, job.Certs, timeLimit)
 		if err != nil {
 			handleError(err)
 			continue
@@ -73,9 +74,10 @@ func executeLambdaJob(isSingleMode bool, isPerpetualMode bool, timeLimit int64) 
 	}
 }
 
-func run(script string, timeLimit int64) (goja.Value, error) {
+func run(script string, certs []string, timeLimit int64) (goja.Value, error) {
 	vm := goja.New()
-	RegisterFunctions(vm)
+	registerFunctions(vm)
+	request.InitTrustedHttpsCerts(certs)
 	if timeLimit != 0 {
 		var closeChan = make(chan bool)
 		defer close(closeChan)

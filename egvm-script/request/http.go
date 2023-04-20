@@ -10,8 +10,6 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"os"
-	"path/filepath"
 	"sort"
 	"strings"
 	"time"
@@ -19,17 +17,14 @@ import (
 	"github.com/dop251/goja"
 )
 
-const (
-	TrustedCertsPath = "./certs"
-)
-
 var (
+	// NOTE: before calling any request functions, tlsConfig must be initialized.
 	tlsConfig *tls.Config
 )
 
-func init() {
+func InitTrustedHttpsCerts(certs []string) {
 	var err error
-	tlsConfig, err = loadTlsConfig(TrustedCertsPath)
+	tlsConfig, err = loadTlsConfig(certs)
 	if err != nil {
 		//fmt.Printf("err: %v\n", err)
 		panic("cannot load trusted certificates")
@@ -127,40 +122,17 @@ func newHttpResponse(resp *http.Response) (result HttpResponse, err error) {
 	return
 }
 
-func loadTlsConfig(certsPath string) (*tls.Config, error) {
-	dicEntry, err := os.ReadDir(certsPath)
-	if err != nil {
-		return nil, err
-	}
-
+func loadTlsConfig(certs []string) (*tls.Config, error) {
 	tlsConfig := &tls.Config{RootCAs: x509.NewCertPool()}
-	for _, e := range dicEntry {
-		if e.IsDir() {
-			panic("cannot keep dir in trusted certs directory")
-		}
 
-		fileNames := strings.Split(e.Name(), ".")
-
-		// if not pem file
-		if len(fileNames) != 2 || fileNames[1] != "pem" {
-			continue
-		}
-
-		certBz, err := os.ReadFile(filepath.Join(certsPath, e.Name()))
+	for _, c := range certs {
+		var b *pem.Block
+		b, _ = pem.Decode([]byte(c))
+		x509Cert, err := x509.ParseCertificate(b.Bytes)
 		if err != nil {
 			return nil, err
 		}
-
-		var b *pem.Block
-		for len(certBz) > 0 {
-			b, certBz = pem.Decode(certBz)
-			x509Cert, err := x509.ParseCertificate(b.Bytes)
-			if err != nil {
-				return nil, err
-			}
-			tlsConfig.RootCAs.AddCert(x509Cert)
-		}
-
+		tlsConfig.RootCAs.AddCert(x509Cert)
 	}
 	return tlsConfig, nil
 }

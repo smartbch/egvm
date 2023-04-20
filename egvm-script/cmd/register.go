@@ -8,7 +8,7 @@ import (
 	"github.com/smartbch/pureauth/egvm-script/types"
 )
 
-func RegisterFunctions(vm *goja.Runtime) {
+func registerFunctions(vm *goja.Runtime) {
 	// ---------- types ----------
 
 	// uint256

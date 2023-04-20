@@ -21,7 +21,7 @@ func setupGojaVmForEnclave() *goja.Runtime {
 	return vm
 }
 
-// Note: using ego-go to test it
+// Note: test it with CGO_FLAGS and CGO_LDFLAGS
 func TestAttestEnclaveServer(t *testing.T) {
 	vm := setupGojaVmForEnclave()
 	_, err := vm.RunString(AttestScriptTemplate)

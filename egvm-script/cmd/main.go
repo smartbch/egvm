@@ -65,6 +65,8 @@ func main() {
 func executeLambdaJob(isSingleMode bool, isPerpetualMode bool, timeLimit int64) {
 	context.EGVMCtx = new(context.EGVMContext)
 	var isFirstRun = true
+	vm := goja.New()
+	var scriptForPerpetualMode string
 	for {
 		var job types.LambdaJob
 		err := job.DecodeMsg(msgp.NewReader(os.Stdin))
@@ -72,13 +74,22 @@ func executeLambdaJob(isSingleMode bool, isPerpetualMode bool, timeLimit int64) 
 			panic(err) //todo: log it
 		}
 		if (isPerpetualMode && isFirstRun) || isSingleMode || timeLimit != 0 {
-			context.EGVMCtx.Set(&job)
+			context.SetContext(&job)
+			request.InitTrustedHttpsCerts(job.Certs)
 		}
-		_, err = run(job.Script, job.Certs, timeLimit)
+		if isPerpetualMode && scriptForPerpetualMode == "" {
+			scriptForPerpetualMode = job.Script
+		}
+		script := job.Script
+		if isPerpetualMode {
+			script = scriptForPerpetualMode
+			context.SetContextInputs(job.Inputs)
+		}
+		_, err = run(vm, script, timeLimit)
 		if err != nil {
 			handleError(err)
 		}
-		res := context.EGVMCtx.CollectResult()
+		res := context.CollectResult()
 		bz, _ := res.MarshalMsg(nil)
 		_, err = os.Stdout.Write(bz)
 		if err != nil {
@@ -88,16 +99,15 @@ func executeLambdaJob(isSingleMode bool, isPerpetualMode bool, timeLimit int64) 
 			return
 		}
 		isFirstRun = false
-		if timeLimit != 0 {
-			context.EGVMCtx.Reset()
+		if timeLimit != 0 { // reset context and runtime in loopMode
+			context.ResetContext()
+			vm = goja.New()
 		}
 	}
 }
 
-func run(script string, certs []string, timeLimit int64) (goja.Value, error) {
-	vm := goja.New()
+func run(vm *goja.Runtime, script string, timeLimit int64) (goja.Value, error) {
 	registerFunctions(vm)
-	request.InitTrustedHttpsCerts(certs)
 	if timeLimit != 0 {
 		var closeChan = make(chan bool)
 		defer close(closeChan)

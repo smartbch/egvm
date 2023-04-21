@@ -20,23 +20,27 @@ func GetEGVMContext(_ goja.FunctionCall, vm *goja.Runtime) goja.Value {
 	return vm.ToValue(EGVMCtx)
 }
 
-func (e *EGVMContext) Set(job *types.LambdaJob) {
-	e.config = job.Config
-	e.inputBufLists = job.Inputs
-	e.state = job.State
+func SetContext(job *types.LambdaJob) {
+	EGVMCtx.config = job.Config
+	EGVMCtx.inputBufLists = job.Inputs
+	EGVMCtx.state = job.State
 }
 
-func (e *EGVMContext) Reset() {
-	e.config = ""
-	e.inputBufLists = nil
-	e.outputBufLists = nil
-	e.state = nil
+func SetContextInputs(inputs [][]byte) {
+	EGVMCtx.inputBufLists = inputs
 }
 
-func (e *EGVMContext) CollectResult() *types.LambdaResult {
+func ResetContext() {
+	EGVMCtx.config = ""
+	EGVMCtx.inputBufLists = nil
+	EGVMCtx.outputBufLists = nil
+	EGVMCtx.state = nil
+}
+
+func CollectResult() *types.LambdaResult {
 	return &types.LambdaResult{
-		Outputs: e.outputBufLists,
-		State:   e.state,
+		Outputs: EGVMCtx.outputBufLists,
+		State:   EGVMCtx.state,
 	}
 }
 

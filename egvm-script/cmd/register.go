@@ -11,7 +11,6 @@ import (
 
 func registerFunctions(vm *goja.Runtime) {
 	// ---------- types ----------
-
 	// uint256
 	vm.Set("U256", types.U256)
 	vm.Set("HexToU256", types.HexToU256)
@@ -34,7 +33,6 @@ func registerFunctions(vm *goja.Runtime) {
 	vm.Set("NewBufBuilder", types.NewBufBuilder)
 
 	// ---------- extension functions ----------
-
 	// bch
 	vm.Set("ParseTxInHex", extension.ParseTxInHex)
 	vm.Set("SignTxAndSerialize", extension.SignTxAndSerialize)
@@ -76,12 +74,14 @@ func registerFunctions(vm *goja.Runtime) {
 	// signature
 	vm.Set("VerifySignature", extension.VerifySignature)
 	vm.Set("Ecrecover", extension.Ecrecover)
+
+	// compress
 	vm.Set("ZstdCompress", extension.ZstdCompress)
 	vm.Set("ZstdDecompress", extension.ZstdDecompress)
+
+	// merkle tree
 	vm.Set("VerifyMerkleProofSha256", extension.VerifyMerkleProofSha256)
 	vm.Set("VerifyMerkleProofKeccak256", extension.VerifyMerkleProofKeccak256)
-	vm.Set("SignTxAndSerialize", extension.SignTxAndSerialize)
-	vm.Set("ParseTxInHex", extension.ParseTxInHex)
 
 	// bip32 key
 	vm.Set("GenerateRandomBip32Key", extension.GenerateRandomBip32Key)
@@ -95,7 +95,6 @@ func registerFunctions(vm *goja.Runtime) {
 	vm.Set("GetTSCBenchEnd", extension.GetTSCBenchEnd)
 
 	// ---------- http(s) request ----------
-
 	vm.Set("HttpsRequest", request.HttpsRequest)
 	vm.Set("AttestEnclaveServer", request.AttestEnclaveServer)
 

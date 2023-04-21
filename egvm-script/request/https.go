@@ -37,6 +37,10 @@ type HttpResponse struct {
 }
 
 func HttpsRequest(method, serverURL, body string, headers ...string) HttpResponse {
+	if serverURL == "" {
+		panic(goja.NewSymbol("Empty url"))
+	}
+
 	req, err := newHttpRequest(method, serverURL, body, headers...)
 	if err != nil {
 		panic(goja.NewSymbol("Error in parsing http request: " + err.Error()))

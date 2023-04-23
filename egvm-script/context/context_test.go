@@ -1,9 +1,10 @@
 package context
 
 import (
+	"testing"
+
 	"github.com/dop251/goja"
 	"github.com/stretchr/testify/require"
-	"testing"
 
 	"github.com/smartbch/pureauth/egvm-script/types"
 )
@@ -122,4 +123,42 @@ func TestEGVMContextOutputsW(t *testing.T) {
 	require.Equal(t, 1, len(EGVMCtx.outputBufLists[0]))
 	require.Equal(t, 2, len(EGVMCtx.outputBufLists[1]))
 	require.Equal(t, 3, len(EGVMCtx.outputBufLists[2]))
+}
+
+func TestEGVMContextCertsR(t *testing.T) {
+	vm := goja.New()
+	EGVMCtx = &EGVMContext{certs: []string{
+		"abc", "edf",
+	}}
+	vm.Set("GetEGVMContext", GetEGVMContext)
+	vm.Set("NewOrderedMapReader", types.NewOrderedMapReader)
+	vm.Set("SerializeMaps", types.SerializeMaps)
+
+	_, err := vm.RunString(`
+	let EGVMCtx = GetEGVMContext()
+	let certs = EGVMCtx.GetCerts()
+`)
+	require.Nil(t, err)
+	certs := vm.Get("certs").Export().([]string)
+	require.Equal(t, 2, len(certs))
+	require.Equal(t, "abc", certs[0])
+}
+
+func TestEGVMContextRootKeyR(t *testing.T) {
+	vm := goja.New()
+	EGVMCtx = &EGVMContext{}
+	SetContext(&types.LambdaJob{}, "")
+	rootS := EGVMCtx.privKey.String()
+	vm.Set("GetEGVMContext", GetEGVMContext)
+	vm.Set("NewOrderedMapReader", types.NewOrderedMapReader)
+	vm.Set("SerializeMaps", types.SerializeMaps)
+
+	_, err := vm.RunString(`
+	let EGVMCtx = GetEGVMContext()
+	let key = EGVMCtx.GetRootKey()
+	let out = key.String()
+`)
+	require.Nil(t, err)
+	out := vm.Get("out").Export().(string)
+	require.Equal(t, rootS, out)
 }

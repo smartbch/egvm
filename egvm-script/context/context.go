@@ -2,13 +2,14 @@ package context
 
 import (
 	"crypto/sha256"
-	"github.com/dop251/goja"
-	"github.com/smartbch/pureauth/keygrantor"
-	"github.com/tyler-smith/go-bip32"
 	"reflect"
 	"runtime"
 
+	"github.com/dop251/goja"
+	"github.com/tyler-smith/go-bip32"
+
 	"github.com/smartbch/pureauth/egvm-script/types"
+	"github.com/smartbch/pureauth/keygrantor"
 )
 
 type EGVMContext struct {
@@ -21,10 +22,6 @@ type EGVMContext struct {
 }
 
 var EGVMCtx *EGVMContext
-
-func GetEGVMContext(_ goja.FunctionCall, vm *goja.Runtime) goja.Value {
-	return vm.ToValue(EGVMCtx)
-}
 
 func SetContext(job *types.LambdaJob, keygrantorUrl string) {
 	EGVMCtx.config = job.Config
@@ -70,12 +67,22 @@ func CollectResult() *types.LambdaResult {
 	}
 }
 
+// ------- for js --------
+
+func GetEGVMContext(_ goja.FunctionCall, vm *goja.Runtime) goja.Value {
+	return vm.ToValue(EGVMCtx)
+}
+
 func (e *EGVMContext) GetConfig(_ goja.FunctionCall, vm *goja.Runtime) goja.Value {
 	return vm.ToValue(e.config)
 }
 
 func (e *EGVMContext) SetConfig(cfg string) {
 	e.config = cfg
+}
+
+func (e *EGVMContext) GetCerts(_ goja.FunctionCall, vm *goja.Runtime) goja.Value {
+	return vm.ToValue(e.certs)
 }
 
 func (e *EGVMContext) GetState(_ goja.FunctionCall, vm *goja.Runtime) goja.Value {
@@ -116,4 +123,8 @@ func (e *EGVMContext) SetOutputs(s goja.Value, vm *goja.Runtime) {
 	default:
 		panic(vm.ToValue("param not array type or arraybuffer, its:" + reflect.TypeOf(t).String()))
 	}
+}
+
+func (e *EGVMContext) GetRootKey(_ goja.FunctionCall, vm *goja.Runtime) goja.Value {
+	return vm.ToValue(e.privKey)
 }

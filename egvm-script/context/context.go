@@ -8,6 +8,8 @@ import (
 	"github.com/dop251/goja"
 	"github.com/tyler-smith/go-bip32"
 
+	"github.com/edgelesssys/ego/enclave"
+
 	"github.com/smartbch/pureauth/egvm-script/extension"
 	"github.com/smartbch/pureauth/egvm-script/types"
 	"github.com/smartbch/pureauth/keygrantor"
@@ -41,8 +43,17 @@ func SetContext(job *types.LambdaJob, keygrantorUrl string) error {
 		}
 		EGVMCtx.privKey = extension.NewBip32Key(privKey)
 	} else {
-		scriptHash := sha256.Sum256([]byte(job.Script))
-		privKey, err := keygrantor.GetKeyFromKeyGrantor(keygrantorUrl, scriptHash)
+		bz, err := job.MarshalMsg(nil)
+		if err != nil {
+			return nil
+		}
+		selfR, err := enclave.GetSelfReport()
+		if err != nil {
+			return err
+		}
+		uniqueID := selfR.UniqueID
+		jobAndSandboxHash := sha256.Sum256(append(bz, uniqueID...))
+		privKey, err := keygrantor.GetKeyFromKeyGrantor(keygrantorUrl, jobAndSandboxHash)
 		if err != nil {
 			return err
 		}

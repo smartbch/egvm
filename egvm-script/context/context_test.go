@@ -38,11 +38,12 @@ func TestEGVMContextStateRW(t *testing.T) {
 	EGVMCtx = &EGVMContext{
 		state: s.Export().(goja.ArrayBuffer).Bytes(),
 	}
-	vm.Set("EGVMCtx", EGVMCtx)
+	vm.Set("GetEGVMContext", GetEGVMContext)
 	vm.Set("NewOrderedMapReader", types.NewOrderedMapReader)
 	vm.Set("SerializeMaps", types.SerializeMaps)
 
 	_, err := vm.RunString(`
+	let EGVMCtx = GetEGVMContext() 
 	let stateBz = EGVMCtx.GetState()
 	let r = NewOrderedMapReader(stateBz)
 	let m = r.Read(0)
@@ -78,11 +79,12 @@ func TestEGVMContextInputsR(t *testing.T) {
 	EGVMCtx = &EGVMContext{
 		inputBufLists: [][]byte{im.Export().(goja.ArrayBuffer).Bytes(), in.Export().(goja.ArrayBuffer).Bytes()},
 	}
-	vm.Set("EGVMCtx", EGVMCtx)
+	vm.Set("GetEGVMContext", GetEGVMContext)
 	vm.Set("NewOrderedMapReader", types.NewOrderedMapReader)
 	vm.Set("SerializeMaps", types.SerializeMaps)
 
 	_, err := vm.RunString(`
+	let EGVMCtx = GetEGVMContext()
 	let inputs = EGVMCtx.GetInputs()
 	let l = inputs.length
 	let r = NewOrderedMapReader(inputs[0])
@@ -102,11 +104,12 @@ func TestEGVMContextInputsR(t *testing.T) {
 func TestEGVMContextOutputsW(t *testing.T) {
 	vm := goja.New()
 	EGVMCtx = &EGVMContext{}
-	vm.Set("EGVMCtx", EGVMCtx)
+	vm.Set("GetEGVMContext", GetEGVMContext)
 	vm.Set("NewOrderedMapReader", types.NewOrderedMapReader)
 	vm.Set("SerializeMaps", types.SerializeMaps)
 
 	_, err := vm.RunString(`
+	let EGVMCtx = GetEGVMContext()
 	let outs = new Array(3)
 	outs[0] = new ArrayBuffer(1)
 	outs[1] = new ArrayBuffer(2)

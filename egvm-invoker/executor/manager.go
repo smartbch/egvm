@@ -37,7 +37,7 @@ func (s *SandboxManager) ExecuteJob(job *types.LambdaJob) (*types.LambdaResult, 
 		return nil, errors.New("all sandbox busy, try later") // todo: add job queue?
 	}
 	res, err := box.executeJob(job)
-	if err != nil {
+	if err == nil {
 		s.lock.Lock()
 		s.BoxStatusMap[box] = false
 		s.lock.Unlock()
@@ -57,5 +57,5 @@ func (s *SandboxManager) findIdleSandbox() *Sandbox {
 	}
 	s.BoxStatusMap[b] = true
 	s.lock.Unlock()
-	return nil
+	return b
 }

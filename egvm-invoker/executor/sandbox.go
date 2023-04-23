@@ -1,10 +1,11 @@
 package executor
 
 import (
-	"github.com/tinylib/msgp/msgp"
 	"io"
 	"os"
 	"os/exec"
+
+	"github.com/tinylib/msgp/msgp"
 
 	"github.com/smartbch/pureauth/egvm-script/types"
 )
@@ -16,10 +17,16 @@ type Sandbox struct {
 }
 
 func (b *Sandbox) executeJob(job *types.LambdaJob) (*types.LambdaResult, error) {
-	err := job.EncodeMsg(msgp.NewWriter(b.stdin))
+	bz, err := job.MarshalMsg(nil)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
+	b.stdin.Write(bz)
+	// todo: why code commented below not work ?
+	//err = job.EncodeMsg(msgp.NewWriter(b.stdin))
+	//if err != nil {
+	//	return nil, err
+	//}
 	var res types.LambdaResult
 	err = res.DecodeMsg(msgp.NewReader(b.stdout))
 	if err != nil {

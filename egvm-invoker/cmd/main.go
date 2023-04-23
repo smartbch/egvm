@@ -48,7 +48,7 @@ func addHttpHandler(m *executor.SandboxManager) {
 		result, err := m.ExecuteJob(&job)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
-			gzipWrite(w, []byte("failed to execute lambda job"))
+			gzipWrite(w, []byte("failed to execute lambda job:"+err.Error()))
 			return
 		}
 		out, err := result.MarshalMsg(nil)
@@ -57,7 +57,6 @@ func addHttpHandler(m *executor.SandboxManager) {
 			gzipWrite(w, []byte("failed to marshal result body"))
 			return
 		}
-		//todo: gzip the response
 		gzipWrite(w, out)
 		return
 	})

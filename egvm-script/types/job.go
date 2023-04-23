@@ -10,6 +10,7 @@ type LambdaJob struct {
 	State  []byte   `msg:"state"` // to be resolved to orderedMap in sandbox
 }
 
+// todo: add error and status field
 type LambdaResult struct {
 	Outputs [][]byte `msg:"outputs"`
 	State   []byte   `msg:"state"` // usually, this is the serialized result of ordered map

@@ -87,7 +87,7 @@ func executeLambdaJob(isSingleMode bool, isPerpetualMode bool, timeLimit int64) 
 		}
 		_, err = run(vm, script, timeLimit)
 		if err != nil {
-			handleError(err)
+			//handleError(err) //todo: log it to file, cannot write to stdout
 		}
 		res := context.CollectResult()
 		bz, _ := res.MarshalMsg(nil)

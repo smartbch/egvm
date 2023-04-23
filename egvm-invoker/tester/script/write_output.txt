@@ -1,0 +1,7 @@
+let EGVMCtx = GetEGVMContext()
+	let outs = new Array(3)
+	outs[0] = new ArrayBuffer(1)
+	outs[1] = new ArrayBuffer(2)
+	outs[2] = new ArrayBuffer(3)
+
+	EGVMCtx.SetOutputs(outs)

@@ -1,8 +1,12 @@
 package context
 
 import (
+	"crypto/sha256"
 	"github.com/dop251/goja"
+	"github.com/smartbch/pureauth/keygrantor"
+	"github.com/tyler-smith/go-bip32"
 	"reflect"
+	"runtime"
 
 	"github.com/smartbch/pureauth/egvm-script/types"
 )
@@ -12,6 +16,8 @@ type EGVMContext struct {
 	inputBufLists  [][]byte
 	state          []byte
 	outputBufLists [][]byte
+	certs          []string
+	privKey        *bip32.Key
 }
 
 var EGVMCtx *EGVMContext
@@ -20,10 +26,30 @@ func GetEGVMContext(_ goja.FunctionCall, vm *goja.Runtime) goja.Value {
 	return vm.ToValue(EGVMCtx)
 }
 
-func SetContext(job *types.LambdaJob) {
+func SetContext(job *types.LambdaJob, keygrantorUrl string) {
 	EGVMCtx.config = job.Config
 	EGVMCtx.inputBufLists = job.Inputs
 	EGVMCtx.state = job.State
+	EGVMCtx.certs = job.Certs
+	// use local rand key to replace keygrantor for dev and test on darwin
+	if runtime.GOOS == "darwin" {
+		seed, err := bip32.NewSeed()
+		if err != nil {
+			panic(err)
+		}
+		privKey, err := bip32.NewMasterKey(seed)
+		if err != nil {
+			panic(err)
+		}
+		EGVMCtx.privKey = privKey
+	} else {
+		scriptHash := sha256.Sum256([]byte(job.Script))
+		privKey, err := keygrantor.GetKeyFromKeyGrantor(keygrantorUrl, scriptHash)
+		if err != nil {
+			panic(err) // comment for core logic test
+		}
+		EGVMCtx.privKey = privKey
+	}
 }
 
 func SetContextInputs(inputs [][]byte) {

@@ -11,15 +11,12 @@ import (
 
 	"github.com/dop251/goja"
 	"github.com/tinylib/msgp/msgp"
-	"github.com/tyler-smith/go-bip32"
 
 	"github.com/smartbch/pureauth/egvm-script/context"
 	"github.com/smartbch/pureauth/egvm-script/request"
 	"github.com/smartbch/pureauth/egvm-script/types"
-	"github.com/smartbch/pureauth/keygrantor"
 )
 
-var privKey *bip32.Key
 var maxMemSize uint64 = 1024 * 1024 * 1024   // 1G
 var defaultRunTimeLimitInLoopMode int64 = 30 // 30s
 
@@ -33,36 +30,17 @@ func main() {
 	flag.BoolVar(&perpetualMode, "p", false, "enable perpetual mode: not clear the state after script run, accept continuous input")
 	flag.StringVar(&keygrantorUrl, "k", "127.0.0.1:8084", "keygrantor url")
 	flag.Parse()
-
 	setRlimit(maxMemSize)
-
-	var err error
-	// use local rand key to replace keygrantor for dev and test on darwin
-	if runtime.GOOS == "darwin" {
-		seed, err := bip32.NewSeed()
-		if err != nil {
-			panic(err)
-		}
-		privKey, err = bip32.NewMasterKey(seed)
-		if err != nil {
-			panic(err)
-		}
-	} else {
-		privKey, err = keygrantor.GetKeyFromKeyGrantor(keygrantorUrl, [32]byte{})
-		if err != nil {
-			panic(err) // comment for core logic test
-		}
-	}
 	if perpetualMode {
-		executeLambdaJob(false, true, 0)
+		executeLambdaJob(false, true, 0, keygrantorUrl)
 	} else if singleMode {
-		executeLambdaJob(true, false, 0)
+		executeLambdaJob(true, false, 0, keygrantorUrl)
 	} else { // loop mode
-		executeLambdaJob(false, false, timeLimitInLoopMode)
+		executeLambdaJob(false, false, timeLimitInLoopMode, keygrantorUrl)
 	}
 }
 
-func executeLambdaJob(isSingleMode bool, isPerpetualMode bool, timeLimit int64) {
+func executeLambdaJob(isSingleMode bool, isPerpetualMode bool, timeLimit int64, keygrantorUrl string) {
 	context.EGVMCtx = new(context.EGVMContext)
 	var isFirstRun = true
 	vm := goja.New()
@@ -74,7 +52,7 @@ func executeLambdaJob(isSingleMode bool, isPerpetualMode bool, timeLimit int64) 
 			panic(err) //todo: log it
 		}
 		if (isPerpetualMode && isFirstRun) || isSingleMode || timeLimit != 0 {
-			context.SetContext(&job)
+			context.SetContext(&job, keygrantorUrl)
 			request.InitTrustedHttpsCerts(job.Certs)
 		}
 		if isPerpetualMode && scriptForPerpetualMode == "" {

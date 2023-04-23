@@ -46,14 +46,21 @@ func executeLambdaJob(isSingleMode bool, isPerpetualMode bool, timeLimit int64, 
 	vm := goja.New()
 	var scriptForPerpetualMode string
 	for {
+		var e string
 		var job types.LambdaJob
 		err := job.DecodeMsg(msgp.NewReader(os.Stdin))
 		if err != nil {
-			panic(err) //todo: log it
+			e = err.Error()
 		}
 		if (isPerpetualMode && isFirstRun) || isSingleMode || timeLimit != 0 {
-			context.SetContext(&job, keygrantorUrl)
-			request.InitTrustedHttpsCerts(job.Certs)
+			err = context.SetContext(&job, keygrantorUrl)
+			if err != nil {
+				e = err.Error()
+			}
+			err = request.InitTrustedHttpsCerts(job.Certs)
+			if err != nil {
+				e = err.Error()
+			}
 		}
 		if isPerpetualMode && scriptForPerpetualMode == "" {
 			scriptForPerpetualMode = job.Script
@@ -65,9 +72,9 @@ func executeLambdaJob(isSingleMode bool, isPerpetualMode bool, timeLimit int64, 
 		}
 		_, err = run(vm, script, timeLimit)
 		if err != nil {
-			//handleError(err) //todo: log it to file, cannot write to stdout
+			e = err.Error()
 		}
-		res := context.CollectResult()
+		res := context.CollectResult(e)
 		bz, _ := res.MarshalMsg(nil)
 		_, err = os.Stdout.Write(bz)
 		if err != nil {

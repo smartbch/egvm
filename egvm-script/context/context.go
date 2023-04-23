@@ -24,7 +24,7 @@ type EGVMContext struct {
 
 var EGVMCtx *EGVMContext
 
-func SetContext(job *types.LambdaJob, keygrantorUrl string) {
+func SetContext(job *types.LambdaJob, keygrantorUrl string) error {
 	EGVMCtx.config = job.Config
 	EGVMCtx.inputBufLists = job.Inputs
 	EGVMCtx.state = job.State
@@ -33,21 +33,22 @@ func SetContext(job *types.LambdaJob, keygrantorUrl string) {
 	if runtime.GOOS == "darwin" {
 		seed, err := bip32.NewSeed()
 		if err != nil {
-			panic(err)
+			return err
 		}
 		privKey, err := bip32.NewMasterKey(seed)
 		if err != nil {
-			panic(err)
+			return err
 		}
 		EGVMCtx.privKey = extension.NewBip32Key(privKey)
 	} else {
 		scriptHash := sha256.Sum256([]byte(job.Script))
 		privKey, err := keygrantor.GetKeyFromKeyGrantor(keygrantorUrl, scriptHash)
 		if err != nil {
-			panic(err) // comment for core logic test
+			return err
 		}
 		EGVMCtx.privKey = extension.NewBip32Key(privKey)
 	}
+	return nil
 }
 
 func SetContextInputs(inputs [][]byte) {
@@ -61,10 +62,11 @@ func ResetContext() {
 	EGVMCtx.state = nil
 }
 
-func CollectResult() *types.LambdaResult {
+func CollectResult(err string) *types.LambdaResult {
 	return &types.LambdaResult{
 		Outputs: EGVMCtx.outputBufLists,
 		State:   EGVMCtx.state,
+		Error:   err,
 	}
 }
 

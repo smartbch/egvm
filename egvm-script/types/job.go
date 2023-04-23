@@ -14,4 +14,5 @@ type LambdaJob struct {
 type LambdaResult struct {
 	Outputs [][]byte `msg:"outputs"`
 	State   []byte   `msg:"state"` // usually, this is the serialized result of ordered map
+	Error   string   `msg:"error"`
 }

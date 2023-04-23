@@ -21,12 +21,10 @@ var (
 	tlsConfig *tls.Config
 )
 
-func InitTrustedHttpsCerts(certs []string) {
+func InitTrustedHttpsCerts(certs []string) error {
 	var err error
 	tlsConfig, err = loadTlsConfig(certs)
-	if err != nil {
-		panic("cannot load trusted certificates")
-	}
+	return err
 }
 
 type HttpResponse struct {

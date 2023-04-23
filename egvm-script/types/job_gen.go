@@ -332,6 +332,12 @@ func (z *LambdaResult) DecodeMsg(dc *msgp.Reader) (err error) {
 				err = msgp.WrapError(err, "State")
 				return
 			}
+		case "error":
+			z.Error, err = dc.ReadString()
+			if err != nil {
+				err = msgp.WrapError(err, "Error")
+				return
+			}
 		default:
 			err = dc.Skip()
 			if err != nil {
@@ -345,9 +351,9 @@ func (z *LambdaResult) DecodeMsg(dc *msgp.Reader) (err error) {
 
 // EncodeMsg implements msgp.Encodable
 func (z *LambdaResult) EncodeMsg(en *msgp.Writer) (err error) {
-	// map header, size 2
+	// map header, size 3
 	// write "outputs"
-	err = en.Append(0x82, 0xa7, 0x6f, 0x75, 0x74, 0x70, 0x75, 0x74, 0x73)
+	err = en.Append(0x83, 0xa7, 0x6f, 0x75, 0x74, 0x70, 0x75, 0x74, 0x73)
 	if err != nil {
 		return
 	}
@@ -373,15 +379,25 @@ func (z *LambdaResult) EncodeMsg(en *msgp.Writer) (err error) {
 		err = msgp.WrapError(err, "State")
 		return
 	}
+	// write "error"
+	err = en.Append(0xa5, 0x65, 0x72, 0x72, 0x6f, 0x72)
+	if err != nil {
+		return
+	}
+	err = en.WriteString(z.Error)
+	if err != nil {
+		err = msgp.WrapError(err, "Error")
+		return
+	}
 	return
 }
 
 // MarshalMsg implements msgp.Marshaler
 func (z *LambdaResult) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// map header, size 2
+	// map header, size 3
 	// string "outputs"
-	o = append(o, 0x82, 0xa7, 0x6f, 0x75, 0x74, 0x70, 0x75, 0x74, 0x73)
+	o = append(o, 0x83, 0xa7, 0x6f, 0x75, 0x74, 0x70, 0x75, 0x74, 0x73)
 	o = msgp.AppendArrayHeader(o, uint32(len(z.Outputs)))
 	for za0001 := range z.Outputs {
 		o = msgp.AppendBytes(o, z.Outputs[za0001])
@@ -389,6 +405,9 @@ func (z *LambdaResult) MarshalMsg(b []byte) (o []byte, err error) {
 	// string "state"
 	o = append(o, 0xa5, 0x73, 0x74, 0x61, 0x74, 0x65)
 	o = msgp.AppendBytes(o, z.State)
+	// string "error"
+	o = append(o, 0xa5, 0x65, 0x72, 0x72, 0x6f, 0x72)
+	o = msgp.AppendString(o, z.Error)
 	return
 }
 
@@ -435,6 +454,12 @@ func (z *LambdaResult) UnmarshalMsg(bts []byte) (o []byte, err error) {
 				err = msgp.WrapError(err, "State")
 				return
 			}
+		case "error":
+			z.Error, bts, err = msgp.ReadStringBytes(bts)
+			if err != nil {
+				err = msgp.WrapError(err, "Error")
+				return
+			}
 		default:
 			bts, err = msgp.Skip(bts)
 			if err != nil {
@@ -453,6 +478,6 @@ func (z *LambdaResult) Msgsize() (s int) {
 	for za0001 := range z.Outputs {
 		s += msgp.BytesPrefixSize + len(z.Outputs[za0001])
 	}
-	s += 6 + msgp.BytesPrefixSize + len(z.State)
+	s += 6 + msgp.BytesPrefixSize + len(z.State) + 6 + msgp.StringPrefixSize + len(z.Error)
 	return
 }

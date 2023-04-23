@@ -71,6 +71,9 @@ func main() {
 	for _, out := range res.Outputs {
 		fmt.Println(string(out))
 	}
+	if res.Error != "" {
+		fmt.Println(res.Error)
+	}
 }
 
 func sendGzipRequest(ctx context.Context, method, url string, body any) *http.Request {

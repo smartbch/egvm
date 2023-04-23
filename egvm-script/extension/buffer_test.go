@@ -36,6 +36,11 @@ const (
 		const bz = HexToBuf(hex)
 	`
 
+	HexToPaddingBufScriptTemplate = `
+		const hex = '0xff11'
+		const bz = HexToPaddingBuf(hex, 32)
+	`
+
 	BufToB64ScriptTemplate = `
 		const buffer1 = new Uint8Array([97, 98, 99, 100, 49, 50, 51, 52]).buffer
 		const b64Str = BufToB64(buffer1)
@@ -80,6 +85,7 @@ func setupGojaVmForBuffer() *goja.Runtime {
 	vm.Set("BufConcat", BufConcat)
 	vm.Set("B64ToBuf", B64ToBuf)
 	vm.Set("HexToBuf", HexToBuf)
+	vm.Set("HexToPaddingBuf", HexToPaddingBuf)
 	vm.Set("BufToB64", BufToB64)
 	vm.Set("BufToHex", BufToHex)
 	vm.Set("BufEqual", BufEqual)
@@ -123,6 +129,16 @@ func TestHexToBuf(t *testing.T) {
 	bz := vm.Get("bz").Export().(goja.ArrayBuffer)
 	bzHex := gethcmn.Bytes2Hex(bz.Bytes())
 	require.EqualValues(t, "ff11", bzHex)
+}
+
+func TestHexToPaddingBuf(t *testing.T) {
+	vm := setupGojaVmForBuffer()
+	_, err := vm.RunString(HexToPaddingBufScriptTemplate)
+	require.NoError(t, err)
+
+	bz := vm.Get("bz").Export().(goja.ArrayBuffer)
+	bzHex := gethcmn.Bytes2Hex(bz.Bytes())
+	require.EqualValues(t, "000000000000000000000000000000000000000000000000000000000000ff11", bzHex)
 }
 
 func TestBufToB64(t *testing.T) {

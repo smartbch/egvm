@@ -295,6 +295,12 @@ func (pub PublicKey) VrfVerify(f goja.FunctionCall, vm *goja.Runtime) goja.Value
 
 // --------- Signature ---------
 
+func GetEthSignedMessage(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
+	msg := utils.GetOneArrayBuffer(f)
+	ethMsg := fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(msg[:]), msg[:])
+	return vm.ToValue(vm.NewArrayBuffer([]byte(ethMsg)))
+}
+
 func VerifySignature(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
 	pubkey, digestHash, signature := utils.GetThreeArrayBuffers(f)
 	if len(pubkey) != 33 && len(pubkey) != 65 {

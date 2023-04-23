@@ -100,6 +100,11 @@ const (
 		const recoverAddress = recoverPubKey.ToEvmAddress()
 		const address1 = publicKey1.ToEvmAddress()
 	`
+
+	GetEthSignedMessageScriptTemplate = `
+		const msg = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]).buffer
+		const ethMsg = GetEthSignedMessage(msg)
+	`
 )
 
 func setupGojaVmForCrypto() *goja.Runtime {
@@ -109,9 +114,10 @@ func setupGojaVmForCrypto() *goja.Runtime {
 	vm.Set("AesGcmEncrypt", AesGcmEncrypt)
 	vm.Set("BufToPrivateKey", BufToPrivateKey)
 	vm.Set("BufToPublicKey", BufToPublicKey)
+	vm.Set("Keccak256", Keccak256)
+	vm.Set("GetEthSignedMessage", GetEthSignedMessage)
 	vm.Set("VerifySignature", VerifySignature)
 	vm.Set("Ecrecover", Ecrecover)
-	vm.Set("Keccak256", Keccak256)
 	return vm
 }
 
@@ -218,4 +224,14 @@ func TestSignature(t *testing.T) {
 	address1 := vm.Get("address1").Export().(goja.ArrayBuffer)
 	address1Hex := gethcmn.Bytes2Hex(address1.Bytes())
 	require.EqualValues(t, address1Hex, recoverAddressHex)
+}
+
+func TestEthSignedMessage(t *testing.T) {
+	vm := setupGojaVmForCrypto()
+	_, err := vm.RunString(GetEthSignedMessageScriptTemplate)
+	require.NoError(t, err)
+
+	ethMsg := vm.Get("ethMsg").Export().(goja.ArrayBuffer)
+	ethMsgStr := string(ethMsg.Bytes())
+	require.EqualValues(t, "\x19Ethereum Signed Message:\n8\x01\x02\x03\x04\x05\x06\a\b", ethMsgStr)
 }

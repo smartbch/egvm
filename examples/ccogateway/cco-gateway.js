@@ -6,16 +6,12 @@ const HTTP_METHOD_GET = 'GET'
 const HTTP_METHOD_POST = 'POST'
 
 
-
-
 class CcoGateway {
     constructor(chainID, confirmation, rpcURLs) {
         this.chainID = chainID
         this.confirmation = confirmation
         this.rpcURLs = rpcURLs
     }
-
-
 
     ensureTxInfo(txHash) {
         // 1. send request to all rpcs to get tx info
@@ -66,9 +62,9 @@ class CcoGateway {
             const txRespResult = txRespBody.result
 
             const txInfo = {
-                'chain_id': this.chainID,
+                'chainID': this.chainID,
                 'timestamp': txTimestampHex,
-                'tx_hash': txHash,
+                'txHash': txHash,
                 'from': txRespResult.from,
                 'to': txRespResult.to,
                 'value': txRespResult.value,
@@ -81,7 +77,19 @@ class CcoGateway {
             throw new Error("Tx infos are not same from different RPCs")
         }
 
-        return createTxInfoBuf(txInfos[0])
+        const privateKeyHex = 'c9cb992b13141bb3326d028020030f33b92ea9a64b6530291e7876938bd31479'
+        const privateKeyBuf = HexToBuf(privateKeyHex)
+        const privateKey = BufToPrivateKey(privateKeyBuf)
+        const txInfoBuf = createTxInfoBuf(txInfos[0])
+        const sig = signBuf(txInfoBuf, privateKey)
+        return {
+            'succeeded': true,
+            'message': '',
+            'result': BufToB64(txInfoBuf),
+            'proof': BufToB64(sig),
+            'salt': '',
+            'pubkey': '',
+        }
     }
 
     #checkTxInfos(txInfos) {
@@ -104,23 +112,32 @@ class CcoGateway {
     }
 }
 
+function signBuf(message, privateKey) {
+    if (privateKey === undefined) {
+        throw new Error("PrivateKey is undefined")
+    }
+
+    const msgHash = Keccak256(message)
+    const ethMsg = GetEthSignedMessage(msgHash)
+    const ethMsgHash = Keccak256(ethMsg)
+    let sig = privateKey.Sign(ethMsgHash)
+    let sigView = new Uint8Array(sig)
+    if (sigView.length === 65) {
+        sigView[64] += 27
+    }
+    return sig
+}
 
 
 function createTxInfoBuf(txInfo) {
-// func (ti *TxInfo) ToBytes() []byte {
-//     bz := make([]byte, 32*4+20*2+len(ti.Data))
-//     copy(bz[32*0:32*0+32], math.PaddedBigBytes(ti.ChainId, 32))
-//     copy(bz[32*1:32*1+32], math.PaddedBigBytes(ti.Timestamp, 32))
-//     copy(bz[32*2:32*2+32], ti.TxHash.Bytes())
-//     copy(bz[32*3:32*3+20], ti.From.Bytes())
-//     copy(bz[32*3+20:32*3+20*2], ti.To.Bytes())
-//     copy(bz[32*3+20*2:32*4+20*2], math.PaddedBigBytes(ti.Value, 32))
-//     copy(bz[32*4+20*2:], ti.Data)
-//     return bz
-// }
     let bb = NewBufBuilder()
-    const chainIDBuf = HexToBuf(txInfo.chain_id)
-    bb.Write(chainIDBuf)
+    bb.Write(HexToPaddingBuf(txInfo.chainID, 32))
+    bb.Write(HexToPaddingBuf(txInfo.timestamp, 32))
+    bb.Write(HexToPaddingBuf(txInfo.txHash, 32))
+    bb.Write(HexToBuf(txInfo.from))
+    bb.Write(HexToBuf(txInfo.to))
+    bb.Write(HexToPaddingBuf(txInfo.value, 32))
+    bb.Write(HexToBuf(txInfo.data))
     return bb.ToBuf()
 }
 
@@ -173,11 +190,16 @@ function buf2Hex(buffer) { // buffer is an ArrayBuffer
         .join('')
 }
 
+function buf2Base64(buffer) {
+    return btoa(String.fromCharCode.apply(null, new Uint8Array(buffer)))
+}
+
+
 function main() {
     const rpcURLs = ['https://rpc.smartbch.org', 'https://sbch-mainnet.paralinker.com/api/v1/4fd540be7cf14c437786be6415822325']
     const ccoGateway = new CcoGateway(ChainID, CONFIRMATION, rpcURLs)
-    const txInfoBuf = ccoGateway.ensureTxInfo('0xe1b1f77471bd476a78b7fade738b3425bb8a2cef6a0c7d4fe66ce093dff61f5b')
-    return buf2Hex(txInfoBuf)
+    const endorseTxResult = ccoGateway.ensureTxInfo('0xe1b1f77471bd476a78b7fade738b3425bb8a2cef6a0c7d4fe66ce093dff61f5b')
+    return JSON.stringify(endorseTxResult)
 }
 
 main()

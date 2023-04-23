@@ -58,6 +58,7 @@ func registerFunctions(vm *goja.Runtime) {
 	// buffer functions
 	vm.Set("BufConcat", extension.BufConcat)
 	vm.Set("HexToBuf", extension.HexToBuf)
+	vm.Set("HexToPaddingBuf", extension.HexToPaddingBuf)
 	vm.Set("B64ToBuf", extension.B64ToBuf)
 	vm.Set("BufToB64", extension.BufToB64)
 	vm.Set("BufToHex", extension.BufToHex)
@@ -72,6 +73,7 @@ func registerFunctions(vm *goja.Runtime) {
 	vm.Set("U32ToBufLE", extension.U32ToBufLE)
 
 	// signature
+	vm.Set("GetEthSignedMessage", extension.GetEthSignedMessage)
 	vm.Set("VerifySignature", extension.VerifySignature)
 	vm.Set("Ecrecover", extension.Ecrecover)
 

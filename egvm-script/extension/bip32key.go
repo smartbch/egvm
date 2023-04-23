@@ -18,6 +18,11 @@ type Bip32Key struct {
 	key *bip32.Key
 }
 
+// Only for golang
+func NewBip32Key(key *bip32.Key) Bip32Key {
+	return Bip32Key{key: key}
+}
+
 func B58ToBip32Key(data string) Bip32Key {
 	key, err := bip32.B58Deserialize(data)
 	if err != nil {

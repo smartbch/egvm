@@ -7,13 +7,14 @@ const HTTP_METHOD_POST = 'POST'
 
 
 class CcoGateway {
-    constructor(chainID, confirmation, rpcURLs) {
+    constructor(chainID, confirmation, rpcURLs, bip32Key) {
         this.chainID = chainID
         this.confirmation = confirmation
         this.rpcURLs = rpcURLs
+        this.bip32Key = bip32Key
     }
 
-    ensureTxInfo(txHash) {
+    endorseTxInfo(txHash) {
         // 1. send request to all rpcs to get tx info
         // 2. send request to all rpcs to get tx receipt
         // 3. check if the block confirmation condition is met
@@ -77,9 +78,7 @@ class CcoGateway {
             throw new Error("Tx infos are not same from different RPCs")
         }
 
-        const privateKeyHex = 'c9cb992b13141bb3326d028020030f33b92ea9a64b6530291e7876938bd31479'
-        const privateKeyBuf = HexToBuf(privateKeyHex)
-        const privateKey = BufToPrivateKey(privateKeyBuf)
+        const privateKey = this.bip32Key.ToPrivateKey()
         const txInfoBuf = createTxInfoBuf(txInfos[0])
         const sig = signBuf(txInfoBuf, privateKey)
         return {
@@ -196,9 +195,11 @@ function buf2Base64(buffer) {
 
 
 function main() {
+    const egvmContext = GetEGVMContext()
+    const key = egvmContext.GetRootKey()
     const rpcURLs = ['https://rpc.smartbch.org', 'https://sbch-mainnet.paralinker.com/api/v1/4fd540be7cf14c437786be6415822325']
-    const ccoGateway = new CcoGateway(ChainID, CONFIRMATION, rpcURLs)
-    const endorseTxResult = ccoGateway.ensureTxInfo('0xe1b1f77471bd476a78b7fade738b3425bb8a2cef6a0c7d4fe66ce093dff61f5b')
+    const ccoGateway = new CcoGateway(ChainID, CONFIRMATION, rpcURLs, key)
+    const endorseTxResult = ccoGateway.endorseTxInfo('0xe1b1f77471bd476a78b7fade738b3425bb8a2cef6a0c7d4fe66ce093dff61f5b')
     return JSON.stringify(endorseTxResult)
 }
 

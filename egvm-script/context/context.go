@@ -8,6 +8,7 @@ import (
 	"github.com/dop251/goja"
 	"github.com/tyler-smith/go-bip32"
 
+	"github.com/smartbch/pureauth/egvm-script/extension"
 	"github.com/smartbch/pureauth/egvm-script/types"
 	"github.com/smartbch/pureauth/keygrantor"
 )
@@ -18,7 +19,7 @@ type EGVMContext struct {
 	state          []byte
 	outputBufLists [][]byte
 	certs          []string
-	privKey        *bip32.Key
+	privKey        extension.Bip32Key
 }
 
 var EGVMCtx *EGVMContext
@@ -38,14 +39,14 @@ func SetContext(job *types.LambdaJob, keygrantorUrl string) {
 		if err != nil {
 			panic(err)
 		}
-		EGVMCtx.privKey = privKey
+		EGVMCtx.privKey = extension.NewBip32Key(privKey)
 	} else {
 		scriptHash := sha256.Sum256([]byte(job.Script))
 		privKey, err := keygrantor.GetKeyFromKeyGrantor(keygrantorUrl, scriptHash)
 		if err != nil {
 			panic(err) // comment for core logic test
 		}
-		EGVMCtx.privKey = privKey
+		EGVMCtx.privKey = extension.NewBip32Key(privKey)
 	}
 }
 

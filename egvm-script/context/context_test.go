@@ -148,7 +148,7 @@ func TestEGVMContextRootKeyR(t *testing.T) {
 	vm := goja.New()
 	EGVMCtx = &EGVMContext{}
 	SetContext(&types.LambdaJob{}, "")
-	rootS := EGVMCtx.privKey.String()
+	rootS := EGVMCtx.privKey.B58Serialize()
 	vm.Set("GetEGVMContext", GetEGVMContext)
 	vm.Set("NewOrderedMapReader", types.NewOrderedMapReader)
 	vm.Set("SerializeMaps", types.SerializeMaps)
@@ -156,7 +156,7 @@ func TestEGVMContextRootKeyR(t *testing.T) {
 	_, err := vm.RunString(`
 	let EGVMCtx = GetEGVMContext()
 	let key = EGVMCtx.GetRootKey()
-	let out = key.String()
+	let out = key.B58Serialize()
 `)
 	require.Nil(t, err)
 	out := vm.Get("out").Export().(string)

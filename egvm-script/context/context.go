@@ -2,13 +2,13 @@ package context
 
 import (
 	"crypto/sha256"
+	"github.com/dop251/goja"
+	"github.com/edgelesssys/ego/enclave"
+	gethcrypto "github.com/ethereum/go-ethereum/crypto"
+	"github.com/tyler-smith/go-bip32"
 	"reflect"
 	"runtime"
-
-	"github.com/dop251/goja"
-	"github.com/tyler-smith/go-bip32"
-
-	"github.com/edgelesssys/ego/enclave"
+	"sort"
 
 	"github.com/smartbch/pureauth/egvm-script/extension"
 	"github.com/smartbch/pureauth/egvm-script/types"
@@ -31,6 +31,8 @@ func SetContext(job *types.LambdaJob, keygrantorUrl string) error {
 	EGVMCtx.inputBufLists = job.Inputs
 	EGVMCtx.state = job.State
 	EGVMCtx.certs = job.Certs
+	sort.Strings(EGVMCtx.certs)
+
 	// use local rand key to replace keygrantor for dev and test on darwin
 	if runtime.GOOS == "darwin" {
 		seed, err := bip32.NewSeed()
@@ -96,7 +98,21 @@ func (e *EGVMContext) SetConfig(cfg string) {
 }
 
 func (e *EGVMContext) GetCerts(_ goja.FunctionCall, vm *goja.Runtime) goja.Value {
-	return vm.ToValue(e.certs)
+	results := make([]goja.ArrayBuffer, 0, len(e.certs))
+	for _, c := range e.certs {
+		results = append(results, vm.NewArrayBuffer([]byte(c)))
+	}
+	return vm.ToValue(results)
+}
+
+func (e *EGVMContext) GetCertsHash(_ goja.FunctionCall, vm *goja.Runtime) goja.Value {
+	certsBzArray := make([][]byte, 0, len(e.certs))
+	for _, c := range e.certs {
+		certsBzArray = append(certsBzArray, []byte(c))
+	}
+
+	certsHashBz := gethcrypto.Keccak256(certsBzArray...)
+	return vm.ToValue(vm.NewArrayBuffer(certsHashBz))
 }
 
 func (e *EGVMContext) GetState(_ goja.FunctionCall, vm *goja.Runtime) goja.Value {

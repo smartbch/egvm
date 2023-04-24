@@ -15,12 +15,6 @@ class CcoGateway {
     }
 
     endorseTxInfo(txHash) {
-        // 1. send request to all rpcs to get tx info
-        // 2. send request to all rpcs to get tx receipt
-        // 3. check if the block confirmation condition is met
-        // 4. check if the tx info from different RPCs are the same
-        // 5. sign tx
-
         if (txHash === undefined || txHash.length !== 2+32*2) {
             throw new Error('Invalid tx hash')
         }
@@ -261,6 +255,8 @@ class CcoGateway {
     }
 }
 
+// ---------------------------- functions ------------------------------------
+
 function signBuf(message, privateKey) {
     if (privateKey === undefined) {
         throw new Error('PrivateKey is undefined')
@@ -390,17 +386,6 @@ function genEthCallReq(sourceContract, from, data, blockNumberHex) {
         ],
         'id': JSONRPC_ID
     }
-}
-
-
-function buf2Hex(buffer) { // buffer is an ArrayBuffer
-    return [...new Uint8Array(buffer)]
-        .map(x => x.toString(16).padStart(2, '0'))
-        .join('')
-}
-
-function buf2Base64(buffer) {
-    return btoa(String.fromCharCode.apply(null, new Uint8Array(buffer)))
 }
 
 

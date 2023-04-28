@@ -5,38 +5,36 @@ const CONFIRMATION = 10
 const HTTP_METHOD_GET = 'GET'
 const HTTP_METHOD_POST = 'POST'
 
-const ProofMode = {
-    existence: "existence",
-    absence: "absence",
+const Mode = {
+    proof: "proof",
+    falsification: "falsification",
 }
 
-
 class CcoGateway {
-    constructor(chainID, confirmation, rpcURLs, bip32Key, proofMode, certsHash) {
-        if (proofMode !== ProofMode.existence && proofMode !== ProofMode.absence) {
-            throw new Error('Invalid proofMode')
-        }
-
-        if (rpcURLs.length === 0) {
-            throw new Error('No RPC URLs provided')
+    constructor(chainID, confirmation, rpcURLs, bip32Key, certsHash) {
+        if (rpcURLs.length < 3) {
+            throw new Error('No enough RPC URLs provided')
         }
 
         this.chainID = chainID
         this.confirmation = confirmation
         this.rpcURLs = rpcURLs
         this.bip32Key = bip32Key
-        this.proofMode = proofMode
         this.certsHash = certsHash
     }
 
-    endorseTxInfo(txHash) {
+    endorseTxInfo(txHash, mode) {
         if (txHash === undefined || txHash.length !== 2+32*2) {
             throw new Error('Invalid tx hash')
         }
 
+        if (mode !== Mode.proof && mode !== Mode.falsification) {
+            throw new Error('Invalid mode')
+        }
+
         let txInfos = [];
         for (let i = 0; i < this.rpcURLs.length; i++) {
-            const txInfo = this.#getTxInfo(txHash, this.rpcURLs[i])
+            const txInfo = this.#getTxInfo(txHash, this.rpcURLs[i], mode)
             txInfos.push(txInfo);
         }
 
@@ -45,17 +43,21 @@ class CcoGateway {
 
         let result = {
             'succeeded': true,
-            'message': '',
-            'result': '',
-            'proof': '',
+            'message': null,
+            'result': null,
+            'sig': null,
             'pubkey': publicKey.Hex(true),
-            'missing': '',
+            'missing': null, // only makes sense in proof mode
+            'different': null, // only makes sense in falsification mode
+            'mode': mode,
         }
 
-        if (this.proofMode === ProofMode.existence) {
-            const [ok, missingIndex] = this.#checkInfosInExistenceMode(txInfos)
+        if (mode === Mode.proof) {
+            const [ok, missingIndex] = this.#checkInfosInProofMode(txInfos)
             if (!ok) {
-                throw new Error('Tx infos are not same from different RPCs')
+                result['succeeded'] = false
+                result['message'] = 'Tx infos are not same from different RPCs'
+                return result
             }
 
             if (missingIndex > -1) {
@@ -66,37 +68,55 @@ class CcoGateway {
             if (missingIndex === 0) {
                 txInfo = txInfos[1]
             }
-            const txInfoBuf = createTxInfoBufInExistenceMode(txInfo, this.certsHash);
+            const txInfoBuf = createTxInfoBufInProofMode(txInfo, this.certsHash);
             const sig = signBuf(txInfoBuf, privateKey)
 
-            result['proof'] = BufToB64(sig)
+            result['sig'] = BufToB64(sig)
             result['result'] = BufToB64(txInfoBuf)
             return result
 
         } else {
-            // absence mode
-            const ok = this.#checkInfosInAbsenceMode(txInfos)
+            // falsification mode
+            const [ok, differentIndex] = this.#checkInfosInFalsificationMode(txInfos)
             if (!ok) {
-                throw new Error('Tx info maybe exists on chain')
+                result['succeeded'] = false
+                result['message'] = 'Tx info does exist on the chain'
+                return result
             }
 
-            const txInfoBuf = createTxInfoBufInAbsenceMode(this.chainID, txHash, this.certsHash);
+            const txInfoBuf = createTxInfoBufInFalsificationMode(this.chainID, txHash, this.certsHash);
             const sig = signBuf(txInfoBuf, privateKey)
 
-            result['proof'] = BufToB64(sig)
+            if (differentIndex > -1) {
+                result['different'] = this.rpcURLs[differentIndex]
+            }
+
+            result['sig'] = BufToB64(sig)
             result['result'] = BufToB64(txInfoBuf)
             return result
         }
     }
 
-    #getTxInfo(txHash, rpcURL) {
+    // returns txInfo
+    // Note:
+    // 1. For proof mode, can allow RPC to be temporarily unavailable.
+    // 2. For falsification mode, can allow query result to be null
+    #getTxInfo(txHash, rpcURL, mode) {
         const receiptResp = HttpsRequest(HTTP_METHOD_POST, rpcURL, JSON.stringify(genGetTxReceiptByHashReq(txHash)), 'Content-Type:application/json')
         if (receiptResp.StatusCode !== 200) {
+            if (mode === Mode.proof) {
+                return null;
+            }
+            // falsification
             throw new Error('Get tx receipt error: ' + receiptResp.Status)
         }
         const receiptBody = JSON.parse(receiptResp.Body)
         const receiptResult = receiptBody.result
         if (receiptResult === null) {
+            if (mode === Mode.proof) {
+                throw new Error('Tx receipt is null')
+            }
+            // falsification
             return null
         }
 
@@ -128,12 +148,20 @@ class CcoGateway {
 
         const txResp = HttpsRequest(HTTP_METHOD_POST, rpcURL, JSON.stringify(genGetTxByHashReq(txHash)), 'Content-Type:application/json');
         if (txResp.StatusCode !== 200) {
-            throw new Error('Get tx info error: ' + txResp.Status)
+            if (mode === Mode.proof) {
+                return null;
+            }
+            // falsification
+            throw new Error('Get tx by hash error: ' + receiptResp.Status)
         }
 
         const txRespBody = JSON.parse(txResp.Body)
         const txRespResult = txRespBody.result
         if (txRespResult === null) {
+            if (mode === Mode.proof) {
+                throw new Error('Tx result is null')
+            }
+            // falsification
             return null
         }
 
@@ -145,10 +173,10 @@ class CcoGateway {
             'to': txRespResult.to,
             'value': txRespResult.value,
             'data': txRespResult.input,
-        };
+        }
     }
 
-    endorseLogInfo(blockHash, sourceContract, topics) {
+    endorseLogInfo(blockHash, sourceContract, topics, mode) {
         if (blockHash === undefined || blockHash.length !== 2+32*2) {
             throw new Error('Invalid block hash')
         }
@@ -161,9 +189,13 @@ class CcoGateway {
             throw new Error('Invalid topics num')
         }
 
+        if (mode !== Mode.proof && mode !== Mode.falsification) {
+            throw new Error('Invalid mode')
+        }
+
         let logInfos = []
         for (let i = 0; i < this.rpcURLs.length; i++) {
-            const logInfo = this.#getLogInfo(blockHash, sourceContract, topics, this.rpcURLs[i])
+            const logInfo = this.#getLogInfo(blockHash, sourceContract, topics, this.rpcURLs[i], mode)
             logInfos.push(logInfo)
         }
 
@@ -172,17 +204,21 @@ class CcoGateway {
 
         let result = {
             'succeeded': true,
-            'message': '',
-            'result': '',
-            'proof': '',
+            'message': null,
+            'result': null,
+            'sig': null,
             'pubkey': publicKey.Hex(true),
-            'missing': '',
+            'missing': null, // only makes sense in proof mode
+            'different': null, // only makes sense in falsification mode
+            'mode': mode,
         }
 
-        if (this.proofMode === ProofMode.existence) {
-            const [ok, missingIndex] = this.#checkInfosInExistenceMode(logInfos)
+        if (mode === Mode.proof) {
+            const [ok, missingIndex] = this.#checkInfosInProofMode(logInfos)
             if (!ok) {
-                throw new Error('Log infos are not same from different RPCs')
+                result['succeeded'] = false
+                result['message'] = 'Log infos are not same from different RPCs'
+                return result
             }
 
             if (missingIndex > -1) {
@@ -193,37 +229,55 @@ class CcoGateway {
             if (missingIndex === 0) {
                 logInfo = logInfos[1]
             }
-            const logInfoBuf = createLogInfoBufInExistenceMode(logInfo, this.certsHash);
+            const logInfoBuf = createLogInfoBufInProofMode(logInfo, this.certsHash);
             const sig = signBuf(logInfoBuf, privateKey)
 
-            result['proof'] = BufToB64(sig)
+            result['sig'] = BufToB64(sig)
             result['result'] = BufToB64(logInfoBuf)
             return result
 
         } else {
-            // absence mode
-            const ok = this.#checkInfosInAbsenceMode(logInfos)
+            // falsification mode
+            const [ok, differentIndex] = this.#checkInfosInFalsificationMode(logInfos)
             if (!ok) {
-                throw new Error('Log info maybe exists on chain')
+                result['succeeded'] = false
+                result['message'] = 'Log info does exist on the chain'
+                return result
             }
 
-            const txInfoBuf = createLogInfoBufInAbsenceMode(this.chainID, sourceContract, topics, this.certsHash);
-            const sig = signBuf(txInfoBuf, privateKey)
+            const logInfoBuf = createLogInfoBufInFalsificationMode(this.chainID, sourceContract, topics, this.certsHash);
+            const sig = signBuf(logInfoBuf, privateKey)
 
-            result['proof'] = BufToB64(sig)
-            result['result'] = BufToB64(txInfoBuf)
+            if (differentIndex > -1) {
+                result['different'] = this.rpcURLs[differentIndex]
+            }
+
+            result['sig'] = BufToB64(sig)
+            result['result'] = BufToB64(logInfoBuf)
             return result
         }
     }
 
-    #getLogInfo(blockHash, sourceContract, topics, rpcURL) {
+    // returns logInfo
+    // Note:
+    // 1. For proof mode, can allow RPC to be temporarily unavailable.
+    // 2. For falsification mode, can allow query result to be null
+    #getLogInfo(blockHash, sourceContract, topics, rpcURL, mode) {
         const getLogResp = HttpsRequest(HTTP_METHOD_POST, rpcURL, JSON.stringify(genGetLogReq(blockHash, sourceContract, topics)), 'Content-Type:application/json')
         if (getLogResp.StatusCode !== 200) {
+            if (mode === Mode.proof) {
+                return null;
+            }
+            // falsification
             throw new Error('Get log error: ' + getLogResp.Status)
         }
         const getLogBody = JSON.parse(getLogResp.Body)
         const getLogResults = getLogBody.result
         if (getLogResults.length === 0) {
+            if (mode === Mode.proof) {
+                throw new Error('Log result is null')
+            }
+            // falsification
             return null
         } else if (getLogResults.length > 1) {
             throw new Error('Found more than one logs')
@@ -260,7 +314,7 @@ class CcoGateway {
         }
     }
 
-    endorseEthCall(sourceContract, from, data) {
+    endorseEthCall(sourceContract, from, data, mode) {
         if (sourceContract === undefined || sourceContract.length !== 2+20*2) {
             throw new Error('Invalid contract address')
         }
@@ -271,6 +325,11 @@ class CcoGateway {
 
         if (data === undefined || data.length < 2+4*2) {
             throw new Error('Invalid data')
+        }
+
+        // only supports proof mode
+        if (mode !== Mode.proof) {
+            throw new Error('Invalid mode')
         }
 
         const latestBlockNumResp = HttpsRequest(HTTP_METHOD_POST, this.rpcURLs[0], JSON.stringify(genBlockNumberReq()), 'Content-Type:application/json')
@@ -294,48 +353,36 @@ class CcoGateway {
 
         let result = {
             'succeeded': true,
-            'message': '',
-            'result': '',
-            'proof': '',
+            'message': null,
+            'result': null,
+            'sig': null,
             'pubkey': publicKey.Hex(true),
-            'missing': '',
+            'missing': null, // only makes sense in proof mode
+            'different': null, // only makes sense in falsification mode
+            'mode': mode,
         }
 
-        if (this.proofMode === ProofMode.existence) {
-            const [ok, missingIndex] = this.#checkInfosInExistenceMode(callInfos)
-            if (!ok) {
-                throw new Error('Call infos are not same from different RPCs')
-            }
-
-            if (missingIndex > -1) {
-                result['missing'] = this.rpcURLs[missingIndex]
-            }
-
-            let callInfo = callInfos[0]
-            if (missingIndex === 0) {
-                callInfo = callInfos[1]
-            }
-            const callInfoBuf = createCallInfoBufInExistenceMode(callInfo, this.certsHash);
-            const sig = signBuf(callInfoBuf, privateKey)
-
-            result['proof'] = BufToB64(sig)
-            result['result'] = BufToB64(callInfoBuf)
-            return result
-
-        } else {
-            // absence mode
-            const ok = this.#checkInfosInAbsenceMode(callInfos)
-            if (!ok) {
-                throw new Error('Call info maybe exists on chain')
-            }
-
-            const callInfoBuf = createCallInfoBufInAbsenceMode(this.chainID, from, sourceContract, data, this.certsHash);
-            const sig = signBuf(callInfoBuf, privateKey)
-
-            result['proof'] = BufToB64(sig)
-            result['result'] = BufToB64(callInfoBuf)
+        const [ok, missingIndex] = this.#checkInfosInProofMode(callInfos)
+        if (!ok) {
+            result['succeeded'] = false
+            result['message'] = 'Call infos are not same from different RPCs'
             return result
         }
+
+        if (missingIndex > -1) {
+            result['missing'] = this.rpcURLs[missingIndex]
+        }
+
+        let callInfo = callInfos[0]
+        if (missingIndex === 0) {
+            callInfo = callInfos[1]
+        }
+        const callInfoBuf = createCallInfoBufInProofMode(callInfo, this.certsHash);
+        const sig = signBuf(callInfoBuf, privateKey)
+
+        result['sig'] = BufToB64(sig)
+        result['result'] = BufToB64(callInfoBuf)
+        return result
     }
 
     #getEthCallInfo(sourceContract, from, data, blockNum, rpcURL) {
@@ -348,7 +395,7 @@ class CcoGateway {
 
         const ethCallResp = HttpsRequest(HTTP_METHOD_POST, rpcURL, JSON.stringify(genEthCallReq(sourceContract, from, data, blockNum)), 'Content-Type:application/json');
         if (ethCallResp.StatusCode !== 200) {
-            throw new Error('Get eth call error: ' + ethCallResp.Status)
+            return null
         }
         const ethCallBody = JSON.parse(ethCallResp.Body)
         const out = ethCallBody.result
@@ -366,21 +413,17 @@ class CcoGateway {
     // return [ok, missingIndex]
     // At most one info is allowed to be missing, the others must be consistent
     // Note: missingIndex only makes sense when ok is true, -1 means no empty info
-    #checkInfosInExistenceMode(infos) {
+    #checkInfosInProofMode(infos) {
         if (this.rpcURLs.length !== infos.length) {
             return [false, 0]
         }
 
-        if (infos.length === 1 && infos[0] === null) {
-            return [false, 0]
-        }
-
-        let emptyNum = 0
+        let unavailableNum = 0
         let missingIndex = -1
         let baseInfo
         for (let i = 0; i < infos.length; i++) {
             if (infos[i] === null) {
-                emptyNum++
+                unavailableNum++
                 missingIndex = i
                 continue
             }
@@ -395,26 +438,52 @@ class CcoGateway {
             }
         }
 
-        if (emptyNum > 1) {
+        if (unavailableNum > 1) {
             return [false, 0]
         }
         return [true, missingIndex]
     }
 
 
-    // return ok
-    // Return true as long as one info does not exist
-    #checkInfosInAbsenceMode(infos) {
+    // return [ok, differentIndex]
+    // Return true as long as one info does not exist or different from others
+    // Note: only supports TxInfo/LogInfo
+    // Note: differentIndex only makes sense when ok is true, -1 means no different info
+    #checkInfosInFalsificationMode(infos) {
         if (this.rpcURLs.length !== infos.length) {
-            return false
+            return [false, 0]
         }
 
-        const randomIndex = Math.floor((Math.random() * infos.length))
-        return infos[randomIndex] === null;
+        let differentIndex = -1
+        let baseInfo = infos[0]
+        for (let i = 1; i < infos.length; i++) {
+            if (!isEqualInfo(baseInfo, infos[i])) {
+                // found
+                differentIndex = i
+                break
+            }
+        }
+
+        if (differentIndex === 1) {
+            if (infos[1] === infos[2]) {
+                differentIndex = 0
+            }
+        }
+
+        return [(differentIndex > -1), differentIndex]
     }
 }
 
 // ---------------------------- functions ------------------------------------
+
+function isIn(v, vList) {
+    for (let i = 0; i < vList.length; i++) {
+        if (v === vList[i]) {
+            return true
+        }
+    }
+    return false
+}
 
 function signBuf(message, privateKey) {
     if (privateKey === undefined) {
@@ -433,7 +502,7 @@ function signBuf(message, privateKey) {
 }
 
 
-function createTxInfoBufInExistenceMode(txInfo, certsHash) {
+function createTxInfoBufInProofMode(txInfo, certsHash) {
     let bb = NewBufBuilder();
     bb.Write(HexToPaddingBuf(txInfo.chainID, 32))
     bb.Write(HexToPaddingBuf(txInfo.timestamp, 32))
@@ -446,7 +515,7 @@ function createTxInfoBufInExistenceMode(txInfo, certsHash) {
     return bb.ToBuf()
 }
 
-function createTxInfoBufInAbsenceMode(chainID, txHash, certsHash) {
+function createTxInfoBufInFalsificationMode(chainID, txHash, certsHash) {
     let bb = NewBufBuilder();
     bb.Write(HexToPaddingBuf(chainID, 32))
     bb.Write(HexToPaddingBuf(txHash, 32))
@@ -454,7 +523,7 @@ function createTxInfoBufInAbsenceMode(chainID, txHash, certsHash) {
     return bb.ToBuf()
 }
 
-function createLogInfoBufInExistenceMode(logInfo, certsHash) {
+function createLogInfoBufInProofMode(logInfo, certsHash) {
     let bb = NewBufBuilder()
     bb.Write(HexToPaddingBuf(logInfo.chainID, 32))
     bb.Write(HexToPaddingBuf(logInfo.timestamp, 32))
@@ -467,7 +536,7 @@ function createLogInfoBufInExistenceMode(logInfo, certsHash) {
     return bb.ToBuf()
 }
 
-function createLogInfoBufInAbsenceMode(chainID, contractAddress, topics, certsHash) {
+function createLogInfoBufInFalsificationMode(chainID, contractAddress, topics, certsHash) {
     let bb = NewBufBuilder()
     bb.Write(HexToPaddingBuf(chainID, 32))
     bb.Write(HexToBuf(contractAddress))
@@ -479,7 +548,7 @@ function createLogInfoBufInAbsenceMode(chainID, contractAddress, topics, certsHa
 }
 
 
-function createCallInfoBufInExistenceMode(callInfo, certsHash) {
+function createCallInfoBufInProofMode(callInfo, certsHash) {
     let bb = NewBufBuilder()
     bb.Write(HexToPaddingBuf(callInfo.chainID, 32))
     bb.Write(HexToPaddingBuf(callInfo.timestamp, 32))
@@ -491,15 +560,6 @@ function createCallInfoBufInExistenceMode(callInfo, certsHash) {
     return bb.ToBuf()
 }
 
-function createCallInfoBufInAbsenceMode(chainID, from, to, data, certsHash) {
-    let bb = NewBufBuilder()
-    bb.Write(HexToPaddingBuf(chainID, 32))
-    bb.Write(HexToBuf(from))
-    bb.Write(HexToBuf(to))
-    bb.Write(HexToBuf(data))
-    bb.Write(HexToPaddingBuf(certsHash, 32))
-    return bb.ToBuf()
-}
 
 function genGetTxByHashReq(txHash) {
     return {
@@ -587,22 +647,34 @@ function isEqualInfo(a, b) {
 
 const testRPCURLs = ['https://rpc.smartbch.org', 'https://sbch-mainnet.paralinker.com/api/v1/4fd540be7cf14c437786be6415822325', 'https://smartbch.greyh.at']
 
-function test_endorseTxResultInExistenceMode() {
+function test_endorseTxResultInProofMode() {
     const egvmContext = GetEGVMContext()
     const certsHash = egvmContext.GetCertsHash()
     const certsHashHex = '0x' + BufToHex(certsHash)
     const key = egvmContext.GetRootKey()
-    const ccoGateway = new CcoGateway(CHAIN_ID, CONFIRMATION, testRPCURLs, key, ProofMode.existence, certsHashHex)
-    const endorseTxResult = ccoGateway.endorseTxInfo('0xe1b1f77471bd476a78b7fade738b3425bb8a2cef6a0c7d4fe66ce093dff61f5b')
+    const ccoGateway = new CcoGateway(CHAIN_ID, CONFIRMATION, testRPCURLs, key,  certsHashHex)
+    const endorseTxResult = ccoGateway.endorseTxInfo(
+        '0xe1b1f77471bd476a78b7fade738b3425bb8a2cef6a0c7d4fe66ce093dff61f5b', Mode.proof)
     return JSON.stringify(endorseTxResult)
 }
 
-function test_endorseLogResultInExistenceMode() {
+function test_endorseTxResultInFalsificationMode() {
     const egvmContext = GetEGVMContext()
     const certsHash = egvmContext.GetCertsHash()
     const certsHashHex = '0x' + BufToHex(certsHash)
     const key = egvmContext.GetRootKey()
-    const ccoGateway = new CcoGateway(CHAIN_ID, CONFIRMATION, testRPCURLs, key, ProofMode.existence, certsHashHex)
+    const ccoGateway = new CcoGateway(CHAIN_ID, CONFIRMATION, testRPCURLs, key,  certsHashHex)
+    const endorseTxResult = ccoGateway.endorseTxInfo(
+        '0xf1b1f77471bd476a78b7fade738b3425bb8a2cef6a0c7d4fe66ce093dff61f5b', Mode.falsification)
+    return JSON.stringify(endorseTxResult)
+}
+
+function test_endorseLogResultInProofMode() {
+    const egvmContext = GetEGVMContext()
+    const certsHash = egvmContext.GetCertsHash()
+    const certsHashHex = '0x' + BufToHex(certsHash)
+    const key = egvmContext.GetRootKey()
+    const ccoGateway = new CcoGateway(CHAIN_ID, CONFIRMATION, testRPCURLs, key,  certsHashHex)
     const endorseLogResult = ccoGateway.endorseLogInfo(
         '0x95ee8003c1cdfc2c6fc67580303e5e45304575cdb6fe9b0fff0068a3550cbadc',
         '0x8bF3BAAE3aB5c6E1cA948f4F551b676E8Ab58B76',
@@ -610,36 +682,44 @@ function test_endorseLogResultInExistenceMode() {
             '0x5d5cab3241b376ef7267de209f6b3c9e18abf0203218bccc442ef801f3764afc',
             '0x000000000000000000000000f78ab1ec66185a02fda96964a3a8b8c38db14703',
             '0xf78ab1ec66185a02fda96964a3a8b8c38db14703205c4503dddbaa006444f068'
-        ])
+        ], Mode.proof)
     return JSON.stringify(endorseLogResult)
 }
 
-function test_endorseCallResultInExistenceMode() {
+function test_endorseLogResultInFalsificationMode() {
     const egvmContext = GetEGVMContext()
     const certsHash = egvmContext.GetCertsHash()
     const certsHashHex = '0x' + BufToHex(certsHash)
     const key = egvmContext.GetRootKey()
-    const ccoGateway = new CcoGateway(CHAIN_ID, CONFIRMATION, testRPCURLs, key, ProofMode.existence, certsHashHex)
+    const ccoGateway = new CcoGateway(CHAIN_ID, CONFIRMATION, testRPCURLs, key,  certsHashHex)
+    const endorseLogResult = ccoGateway.endorseLogInfo(
+        '0x95ee8003c1cdfc2c6fc67580303e5e45304575cdb6fe9b0fff0068a3550cbadc',
+        '0x8bF3BAAE3aB5c6E1cA948f4F551b676E8Ab58B76',
+        [
+            '0x5d5cab3241b376ef7267de209f6b3c9e18abf0203218bccc442ef801f3764afc',
+            '0x000000000000000000000000f78ab1ec66185a02fda96964a3a8b8c38db14703',
+            '0xf78ab1ec66185a02fda96964a3a8b8c38db14703205c4503dddbaa006444f068'
+        ], Mode.falsification)
+    return JSON.stringify(endorseLogResult)
+}
+
+function test_endorseCallResultInProofMode() {
+    const egvmContext = GetEGVMContext()
+    const certsHash = egvmContext.GetCertsHash()
+    const certsHashHex = '0x' + BufToHex(certsHash)
+    const key = egvmContext.GetRootKey()
+    const ccoGateway = new CcoGateway(CHAIN_ID, CONFIRMATION, testRPCURLs, key, certsHashHex)
     const endorseEthCallResult = ccoGateway.endorseEthCall(
         '0x22a9D210ba154994ad1477F585602eC41b99b931',
         '0x32c7d35F6Ac14437318035E4AECB3e9e8a84D556',
-        '0x2542f3d500000000000000000000000022a9d210ba154994ad1477f585602ec41b99b9315fe7f977e71dba2ea1a68e21057beebb9be2ac30c6410aa38d4f3fbe41dcffd222a9d210ba154994ad1477f585602ec41b99b931000038400063b0082000010f00000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000000016d1e088b8d15320b2e0b4fe4adc74b7401789a76d3c55aa2046d1133e8e5eacb530af0c450dc5292b5c7b06a84e26cc5244d8d42e5aa925877638c36f2a81c4b00000000000000000000000000000000000000000000000000000000000027100000000000000000000000000000000000000000000000000000000063ae473600000000000000000000000032c7d35f6ac14437318035e4aecb3e9e8a84d55600000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000012000000000000000000000000000000000000000000000000000000000000000033e38a7272680c978d8255418e1729d3092ba064f5a3880c96e4827f94111bc8f22a9d210ba154994ad1477f585602ec41b99b931000038400063b0082000010f00000000000000000000000022a9d210ba154994ad1477f585602ec41b99b93100000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000063ae4736')
+        '0x2542f3d500000000000000000000000022a9d210ba154994ad1477f585602ec41b99b9315fe7f977e71dba2ea1a68e21057beebb9be2ac30c6410aa38d4f3fbe41dcffd222a9d210ba154994ad1477f585602ec41b99b931000038400063b0082000010f00000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000000016d1e088b8d15320b2e0b4fe4adc74b7401789a76d3c55aa2046d1133e8e5eacb530af0c450dc5292b5c7b06a84e26cc5244d8d42e5aa925877638c36f2a81c4b00000000000000000000000000000000000000000000000000000000000027100000000000000000000000000000000000000000000000000000000063ae473600000000000000000000000032c7d35f6ac14437318035e4aecb3e9e8a84d55600000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000012000000000000000000000000000000000000000000000000000000000000000033e38a7272680c978d8255418e1729d3092ba064f5a3880c96e4827f94111bc8f22a9d210ba154994ad1477f585602ec41b99b931000038400063b0082000010f00000000000000000000000022a9d210ba154994ad1477f585602ec41b99b93100000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000063ae4736'
+        , Mode.proof)
     return JSON.stringify(endorseEthCallResult)
 }
 
-function test_endorseTxResultInAbsenceMode() {
-    const egvmContext = GetEGVMContext()
-    const certsHash = egvmContext.GetCertsHash()
-    const certsHashHex = '0x' + BufToHex(certsHash)
-    const key = egvmContext.GetRootKey()
-    const ccoGateway = new CcoGateway(CHAIN_ID, CONFIRMATION, testRPCURLs, key, ProofMode.absence, certsHashHex)
-    const endorseTxResult = ccoGateway.endorseTxInfo('0xf1b1f77471bd476a78b7fade738b3425bb8a2cef6a0c7d4fe66ce093dff61f5b')
-    return JSON.stringify(endorseTxResult)
-}
 
-
-
-// test_endorseTxResultInExistenceMode()
-// test_endorseLogResultInExistenceMode()
-// test_endorseCallResultInExistenceMode()
-test_endorseTxResultInAbsenceMode()
+// test_endorseTxResultInProofMode()
+// test_endorseTxResultInFalsificationMode()
+// test_endorseLogResultInProofMode()
+// test_endorseLogResultInFalsificationMode()
+// test_endorseCallResultInProofMode()

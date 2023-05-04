@@ -34,7 +34,7 @@ class CcoGateway {
 
         let txInfos = [];
         for (let i = 0; i < this.rpcURLs.length; i++) {
-            const txInfo = this.#getTxInfo(txHash, this.rpcURLs[i], mode)
+            const txInfo = this.#getTxInfo(txHash, this.rpcURLs[i])
             txInfos.push(txInfo);
         }
 
@@ -56,7 +56,7 @@ class CcoGateway {
             const [ok, missingIndex] = this.#checkInfosInProofMode(txInfos)
             if (!ok) {
                 result['succeeded'] = false
-                result['message'] = 'Tx infos are not same from different RPCs'
+                result['message'] = 'verification failure in proof mode'
                 return result
             }
 
@@ -80,7 +80,7 @@ class CcoGateway {
             const [ok, differentIndex] = this.#checkInfosInFalsificationMode(txInfos)
             if (!ok) {
                 result['succeeded'] = false
-                result['message'] = 'Tx info does exist on the chain'
+                result['message'] = 'verification failure in falsification mode'
                 return result
             }
 
@@ -101,34 +101,26 @@ class CcoGateway {
     // Note:
     // 1. For proof mode, can allow RPC to be temporarily unavailable.
     // 2. For falsification mode, can allow query result to be null
-    #getTxInfo(txHash, rpcURL, mode) {
+    #getTxInfo(txHash, rpcURL) {
         const receiptResp = HttpsRequest(HTTP_METHOD_POST, rpcURL, JSON.stringify(genGetTxReceiptByHashReq(txHash)), 'Content-Type:application/json')
         if (receiptResp.StatusCode !== 200) {
-            if (mode === Mode.proof) {
-                return null;
-            }
-            // falsification
-            throw new Error('Get tx receipt error: ' + receiptResp.Status)
+            return new Error('Get tx receipt error: ' + receiptResp.Status)
         }
         const receiptBody = JSON.parse(receiptResp.Body)
         const receiptResult = receiptBody.result
         if (receiptResult === null) {
-            if (mode === Mode.proof) {
-                throw new Error('Tx receipt is null')
-            }
-            // falsification
             return null
         }
 
         const txStatus = receiptResult.status
         if (txStatus !== '0x1') {
-            throw new Error('Tx is unsuccessful')
+            return new Error('Tx is unsuccessful')
         }
         const blockNumberInReceiptHex = receiptBody.result.blockNumber
 
         const latestBlockNumResp = HttpsRequest(HTTP_METHOD_POST, rpcURL, JSON.stringify(genBlockNumberReq()), 'Content-Type:application/json')
         if (latestBlockNumResp.StatusCode !== 200) {
-            throw new Error('Get block number error: ' + latestBlockNumResp.Status)
+            return new Error('Get block number error: ' + latestBlockNumResp.Status)
         }
         const latestBlockNumBody = JSON.parse(latestBlockNumResp.Body)
         const latestBlockNumberHex = latestBlockNumBody.result
@@ -136,32 +128,24 @@ class CcoGateway {
         const latestBlockNumU256 = HexToU256(latestBlockNumberHex)
         const blockNumberInReceiptU256 = HexToU256(blockNumberInReceiptHex)
         if (latestBlockNumU256.Sub(blockNumberInReceiptU256).Lt(U256(this.confirmation))) {
-            throw new Error('Tx is still confirming')
+            return new Error('Tx is still confirming')
         }
 
         const headerResp = HttpsRequest(HTTP_METHOD_POST, rpcURL, JSON.stringify(genGetBlockHeaderReq(blockNumberInReceiptHex)), 'Content-Type:application/json');
         if (headerResp.StatusCode !== 200) {
-            throw new Error('Get block header error: ' + headerResp.Status)
+            return new Error('Get block header error: ' + headerResp.Status)
         }
         const headerBody = JSON.parse(headerResp.Body)
         const timestamp = headerBody.result.timestamp
 
         const txResp = HttpsRequest(HTTP_METHOD_POST, rpcURL, JSON.stringify(genGetTxByHashReq(txHash)), 'Content-Type:application/json');
         if (txResp.StatusCode !== 200) {
-            if (mode === Mode.proof) {
-                return null;
-            }
-            // falsification
-            throw new Error('Get tx by hash error: ' + receiptResp.Status)
+            return new Error('Get tx by hash error: ' + receiptResp.Status)
         }
 
         const txRespBody = JSON.parse(txResp.Body)
         const txRespResult = txRespBody.result
         if (txRespResult === null) {
-            if (mode === Mode.proof) {
-                throw new Error('Tx result is null')
-            }
-            // falsification
             return null
         }
 
@@ -195,7 +179,7 @@ class CcoGateway {
 
         let logInfos = []
         for (let i = 0; i < this.rpcURLs.length; i++) {
-            const logInfo = this.#getLogInfo(blockHash, sourceContract, topics, this.rpcURLs[i], mode)
+            const logInfo = this.#getLogInfo(blockHash, sourceContract, topics, this.rpcURLs[i])
             logInfos.push(logInfo)
         }
 
@@ -217,7 +201,7 @@ class CcoGateway {
             const [ok, missingIndex] = this.#checkInfosInProofMode(logInfos)
             if (!ok) {
                 result['succeeded'] = false
-                result['message'] = 'Log infos are not same from different RPCs'
+                result['message'] = 'verification failure in proof mode'
                 return result
             }
 
@@ -241,7 +225,7 @@ class CcoGateway {
             const [ok, differentIndex] = this.#checkInfosInFalsificationMode(logInfos)
             if (!ok) {
                 result['succeeded'] = false
-                result['message'] = 'Log info does exist on the chain'
+                result['message'] = 'verification failure in falsification mode'
                 return result
             }
 
@@ -262,32 +246,24 @@ class CcoGateway {
     // Note:
     // 1. For proof mode, can allow RPC to be temporarily unavailable.
     // 2. For falsification mode, can allow query result to be null
-    #getLogInfo(blockHash, sourceContract, topics, rpcURL, mode) {
+    #getLogInfo(blockHash, sourceContract, topics, rpcURL) {
         const getLogResp = HttpsRequest(HTTP_METHOD_POST, rpcURL, JSON.stringify(genGetLogReq(blockHash, sourceContract, topics)), 'Content-Type:application/json')
         if (getLogResp.StatusCode !== 200) {
-            if (mode === Mode.proof) {
-                return null;
-            }
-            // falsification
-            throw new Error('Get log error: ' + getLogResp.Status)
+            return new Error('Get log error: ' + getLogResp.Status)
         }
         const getLogBody = JSON.parse(getLogResp.Body)
         const getLogResults = getLogBody.result
         if (getLogResults.length === 0) {
-            if (mode === Mode.proof) {
-                throw new Error('Log result is null')
-            }
-            // falsification
             return null
         } else if (getLogResults.length > 1) {
-            throw new Error('Found more than one logs')
+            return new Error('Found more than one logs')
         }
 
         const getLogResult = getLogResults[0]
 
         const latestBlockNumResp = HttpsRequest(HTTP_METHOD_POST, rpcURL, JSON.stringify(genBlockNumberReq()), 'Content-Type:application/json')
         if (latestBlockNumResp.StatusCode !== 200) {
-            throw new Error('Get block number error: ' + latestBlockNumResp.Status)
+            return new Error('Get block number error: ' + latestBlockNumResp.Status)
         }
         const latestBlockNumBody = JSON.parse(latestBlockNumResp.Body)
         const latestBlockNumHex = latestBlockNumBody.result
@@ -295,12 +271,12 @@ class CcoGateway {
         const latestBlockNumU256 = HexToU256(latestBlockNumHex)
         const blockNumberInLogU256 = HexToU256(getLogResult.blockNumber)
         if (latestBlockNumU256.Sub(blockNumberInLogU256).Lt(U256(this.confirmation))) {
-            throw new Error('Log is still confirming')
+            return new Error('Log is still confirming')
         }
 
         const headerResp = HttpsRequest(HTTP_METHOD_POST, rpcURL, JSON.stringify(genGetBlockHeaderReq(getLogResult.blockNumber)), 'Content-Type:application/json');
         if (headerResp.StatusCode !== 200) {
-            throw new Error('Get block header error: ' + headerResp.Status)
+            return new Error('Get block header error: ' + headerResp.Status)
         }
         const headerBody = JSON.parse(headerResp.Body)
         const timestamp = headerBody.result.timestamp
@@ -365,7 +341,7 @@ class CcoGateway {
         const [ok, missingIndex] = this.#checkInfosInProofMode(callInfos)
         if (!ok) {
             result['succeeded'] = false
-            result['message'] = 'Call infos are not same from different RPCs'
+            result['message'] = 'verification failure in proof mode'
             return result
         }
 
@@ -388,14 +364,14 @@ class CcoGateway {
     #getEthCallInfo(sourceContract, from, data, blockNum, rpcURL) {
         const headerResp = HttpsRequest(HTTP_METHOD_POST, rpcURL, JSON.stringify(genGetBlockHeaderReq(blockNum)), 'Content-Type:application/json');
         if (headerResp.StatusCode !== 200) {
-            throw new Error('Get block header error: ' + headerResp.Status)
+            return new Error('Get block header error: ' + headerResp.Status)
         }
         const headerBody = JSON.parse(headerResp.Body)
         const timestamp = headerBody.result.timestamp
 
         const ethCallResp = HttpsRequest(HTTP_METHOD_POST, rpcURL, JSON.stringify(genEthCallReq(sourceContract, from, data, blockNum)), 'Content-Type:application/json');
         if (ethCallResp.StatusCode !== 200) {
-            return null
+            return new Error('Get eth call error: ' + ethCallResp.Status)
         }
         const ethCallBody = JSON.parse(ethCallResp.Body)
         const out = ethCallBody.result
@@ -411,24 +387,28 @@ class CcoGateway {
     }
 
     // return [ok, missingIndex]
-    // At most one info is allowed to be missing, the others must be consistent
+    // At most one rpc is allowed to be unavailable, the others must be consistent
     // Note: missingIndex only makes sense when ok is true, -1 means no empty info
     #checkInfosInProofMode(infos) {
         if (this.rpcURLs.length !== infos.length) {
             return [false, 0]
         }
 
-        let unavailableNum = 0
+        if (haveNull(infos)) {
+            return [false, 0]
+        }
+
+        let unavailableNum = 0;
         let missingIndex = -1
         let baseInfo
         for (let i = 0; i < infos.length; i++) {
-            if (infos[i] === null) {
+            if (infos[i] instanceof Error) {
                 unavailableNum++
                 missingIndex = i
                 continue
             }
 
-            if (baseInfo === undefined && infos[i] !== null) {
+            if (baseInfo === undefined && !(infos[i] instanceof Error)) {
                 baseInfo = infos[i]
                 continue
             }
@@ -446,15 +426,24 @@ class CcoGateway {
 
 
     // return [ok, differentIndex]
-    // Return true as long as one info does not exist or different from others
+    // Return true when the result does not exist(all null), or when the query result is inconsistent with other RPCs
     // Note: only supports TxInfo/LogInfo
-    // Note: differentIndex only makes sense when ok is true, -1 means no different info
+    // Note: differentIndex only makes sense when ok is true, -1 means the result does not exist on chain
     #checkInfosInFalsificationMode(infos) {
         if (this.rpcURLs.length !== infos.length) {
             return [false, 0]
         }
 
-        let differentIndex = -1
+        if (haveError(infos)) {
+            return [false, 0]
+        }
+
+
+        let differentIndex = -1;
+        if (allNull(infos)) {
+            return [true, differentIndex]
+        }
+
         let baseInfo = infos[0]
         for (let i = 1; i < infos.length; i++) {
             if (!isEqualInfo(baseInfo, infos[i])) {
@@ -484,6 +473,36 @@ function isIn(v, vList) {
     }
     return false
 }
+
+function haveError(vList) {
+    for (let i = 0; i < vList.length; i++) {
+        if (vList[i] instanceof Error) {
+            return true
+        }
+    }
+    return false
+}
+
+function haveNull(vList) {
+    for (let i = 0; i < vList.length; i++) {
+        if (vList[i] === null) {
+            return true
+        }
+    }
+    return false
+}
+
+function allNull(vList) {
+    let counter = 0
+    for (let i = 0; i < vList.length; i++) {
+        if (vList[i] === null) {
+            counter++
+        }
+    }
+    return counter === vList.length
+}
+
+
 
 function signBuf(message, privateKey) {
     if (privateKey === undefined) {
@@ -646,6 +665,7 @@ function isEqualInfo(a, b) {
 
 
 const testRPCURLs = ['https://rpc.smartbch.org', 'https://sbch-mainnet.paralinker.com/api/v1/4fd540be7cf14c437786be6415822325', 'https://smartbch.greyh.at']
+// const testRPCURLsWithOneUnavailableRPC = ['https://rpc.smartbch.org', 'https://sbch-mainnet.paralinker.com/api/v2/4fd540be7cf14c437786be6415822325', 'https://smartbch.greyh.at']
 
 function test_endorseTxResultInProofMode() {
     const egvmContext = GetEGVMContext()
@@ -722,4 +742,4 @@ function test_endorseCallResultInProofMode() {
 // test_endorseTxResultInFalsificationMode()
 // test_endorseLogResultInProofMode()
 // test_endorseLogResultInFalsificationMode()
-// test_endorseCallResultInProofMode()
+test_endorseCallResultInProofMode()

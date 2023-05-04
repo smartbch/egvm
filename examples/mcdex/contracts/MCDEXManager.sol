@@ -11,8 +11,8 @@ contract MCDEXManager {
 
     mapping (address => mapping (address => uint)) walletMap; // Coin => (EOA => Balance)
 
-
     event Deposit(address indexed owner, uint indexed coin_amount);
+    event Withdraw(address indexed owner, uint indexed coin_amount);
 
     function safeReceive(address coin, uint amount) internal returns (uint) {
         uint realAmount = amount;
@@ -46,7 +46,6 @@ contract MCDEXManager {
         return walletMap[token][owner];
     }
 
-
     function deposit(address owner, uint coin_amount) public payable {
         address coin = address(uint160(coin_amount >>96));
         uint amount = uint96(coin_amount);
@@ -63,6 +62,7 @@ contract MCDEXManager {
         require(balance >= amount, "not-enough-balance");
         safeTransfer(coin, msg.sender, amount);
         saveWallet(coin, msg.sender, balance - amount);
+        emit Withdraw(msg.sender, coin_amount);
     }
 }
 

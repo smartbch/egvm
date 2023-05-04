@@ -34,11 +34,30 @@ describe("MCDEXManager", function () {
       expect(await manager.loadWallet(myToken.address, account1.address)).to.equal(100);
     });
 
-    it("ERC20: transfer amount exceeds balance", async function () {
+    it("Failed ERC20: transfer amount exceeds balance", async function () {
       const { manager, myToken, account1, account2 } = await loadFixture(deployMCDEXManager);
 
       await expect(manager.connect(account2).deposit(account2.address, concatAddressAmount(myToken.address, 100)))
           .to.revertedWith('ERC20: transfer amount exceeds balance');
+    });
+  });
+
+  describe("Withdraw", function () {
+    it("OK", async function () {
+      const { manager, myToken, account1, account2 } = await loadFixture(deployMCDEXManager);
+      await expect(manager.connect(account1).deposit(account1.address, concatAddressAmount(myToken.address, 100)))
+          .to.emit(manager, 'Deposit').withArgs(account1.address, concatAddressAmount(myToken.address, 100));
+
+      await expect(manager.connect(account1).withdraw(concatAddressAmount(myToken.address, 50)))
+          .to.emit(manager, 'Withdraw').withArgs(account1.address, concatAddressAmount(myToken.address, 50));
+
+      expect(await manager.loadWallet(myToken.address, account1.address)).to.equal(50);
+    });
+
+    it("Failed reverted with reason string 'not-enough-balance'", async function () {
+      const { manager, myToken, account1, account2 } = await loadFixture(deployMCDEXManager);
+      await expect(manager.connect(account2).withdraw(concatAddressAmount(myToken.address, 100)))
+          .to.revertedWith('not-enough-balance');
     });
   });
 });

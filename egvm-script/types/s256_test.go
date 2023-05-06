@@ -12,12 +12,12 @@ import (
 const (
 	S256ScriptTemplate = `
 		const a = S256(%v)
-		a.ToString()
+		a.String()
 	`
 
 	HexToS256ScriptTemplate = `
 		const b = HexToS256('%v')
-		b.ToString()
+		b.String()
 	`
 
 	BufToS256ScriptTemplate = `
@@ -25,41 +25,41 @@ const (
 		let view = new Uint8Array(buffer);
 		view[31] = %v
 		const c = BufToS256(buffer)
-		c.ToString()
+		c.String()
 	`
 
 	ToU256ScriptTemplate = `
 		const d = S256(%v)
 		const ud = d.ToU256()
-		ud.ToString()
+		ud.String()
 	`
 
 	S256AddScriptTemplate = `
 		const a = S256(%v)
 		const b = S256(%v)
 		const ab = a.Add(b)
-		ab.ToString()
+		ab.String()
 	`
 
 	S256SubScriptTemplate = `
 		const a = S256(%v)
 		const b = S256(%v)
 		const ab = a.Sub(b)
-		ab.ToString()
+		ab.String()
 	`
 
 	S256DivScriptTemplate = `
 		const a = S256(%v)
 		const b = S256(%v)
 		const ab = a.Div(b)
-		ab.ToString()
+		ab.String()
 	`
 
 	S256MulScriptTemplate = `
 		const a = S256(%v)
 		const b = S256(%v)
 		const ab = a.Mul(b)
-		ab.ToString()
+		ab.String()
 	`
 
 	S256NegScriptTemplate = `
@@ -117,7 +117,7 @@ const (
 		const a = S256(%v)
 		const toBuf = a.ToBuf()
 		const toHex = a.ToHex()
-		const toString = a.ToString()
+		const toString = a.String()
 	`
 )
 

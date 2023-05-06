@@ -59,6 +59,18 @@ func HexToBuf(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
 	return vm.ToValue(vm.NewArrayBuffer(data))
 }
 
+func UTF8StrToBuf(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
+	if len(f.Arguments) != 1 {
+		panic(utils.IncorrectArgumentCount)
+	}
+	str, ok := f.Arguments[0].Export().(string)
+	if !ok {
+		panic(goja.NewSymbol("The first argument must be string"))
+	}
+
+	return vm.ToValue(vm.NewArrayBuffer([]byte(str)))
+}
+
 // HexToPaddingBuf encodes a hex string to a padding buffer in big-endian
 func HexToPaddingBuf(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
 	if len(f.Arguments) != 2 {

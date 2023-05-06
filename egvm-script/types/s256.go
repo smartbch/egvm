@@ -218,12 +218,10 @@ func (s Sint256) ToHex(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
 	return vm.ToValue(s.x.Hex())
 }
 
-func (s Sint256) ToString(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
-	if len(f.Arguments) != 0 {
-		panic(vm.ToValue("ToHex has no arguments."))
-	}
+// Stringer interface
+func (s Sint256) String() string {
 	if s.x.Sign() < 0 {
-		return vm.ToValue("-" + uint256.NewInt(0).Neg(s.x).String())
+		return "-" + uint256.NewInt(0).Neg(s.x).String()
 	}
-	return vm.ToValue(s.x.String())
+	return s.x.String()
 }

@@ -14,12 +14,12 @@ import (
 const (
 	U256ScriptTemplate = `
 		const a = U256(%v)
-		a.ToString()
+		a.String()
 	`
 
 	HexToU256ScriptTemplate = `
 		const b = HexToU256('%v')
-		b.ToString()
+		b.String()
 	`
 
 	BufToU256ScriptTemplate = `
@@ -27,41 +27,41 @@ const (
 		let view = new Uint8Array(buffer);
 		view[31] = %v
 		const c = BufToU256(buffer)
-		c.ToString()
+		c.String()
 	`
 
 	ToS256ScriptTemplate = `
 		const d = U256(%v)
 		const sd = d.ToS256()
-		sd.ToString()
+		sd.String()
 	`
 
 	U256AddScriptTemplate = `
 		const a = U256(%v)
 		const b = U256(%v)
 		const ab = a.Add(b)
-		ab.ToString()
+		ab.String()
 	`
 
 	U256UnsafeAddScriptTemplate = `
 		const c = U256(%v)
 		const d = U256(%v)
 		const cd = c.UnsafeAdd(d)
-		cd.ToString()
+		cd.String()
 	`
 
 	U256DivScriptTemplate = `
 		const a = U256(%v)
 		const b = U256(%v)
 		const ab = a.Div(b)
-		ab.ToString()
+		ab.String()
 	`
 
 	U256ModScriptTemplate = `
 		const a = U256(%v)
 		const b = U256(%v)
 		const ab = a.Mod(b)
-		ab.ToString()
+		ab.String()
 	`
 
 	U256DivModScriptTemplate = `
@@ -74,41 +74,41 @@ const (
 		const a = U256(%v)
 		const b = U256(%v)
 		const ab = a.Exp(b)
-		ab.ToString()
+		ab.String()
 	`
 
 	U256MulScriptTemplate = `
 		const a = U256(%v)
 		const b = U256(%v)
 		const ab = a.Mul(b)
-		ab.ToString()
+		ab.String()
 	`
 
 	U256UnsafeMulScriptTemplate = `
 		const c = U256(%v)
 		const d = U256(%v)
 		const cd = c.UnsafeMul(d)
-		cd.ToString()
+		cd.String()
 	`
 
 	U256AndScriptTemplate = `
 		const a = HexToU256('%v')
 		const b = HexToU256('%v')
 		const ab = a.And(b)
-		ab.ToString()
+		ab.String()
 	`
 
 	U256OrScriptTemplate = `
 		const a = HexToU256('%v')
 		const b = HexToU256('%v')
 		const ab = a.Or(b)
-		ab.ToString()
+		ab.String()
 	`
 
 	U256NotScriptTemplate = `
 		const a = HexToU256('%v')
 		const notA = a.Not()
-		notA.ToString()
+		notA.String()
 	`
 
 	U256CompareScriptTemplate = `
@@ -134,21 +134,21 @@ const (
 	U256SqrtScriptTemplate = `
 		const a = U256(%v)
 		const sq = a.Sqrt()
-		sq.ToString()
+		sq.String()
 	`
 
 	U256SubScriptTemplate = `
 		const a = U256(%v)
 		const b = U256(%v)
 		const ab = a.Sub(b)
-		ab.ToString()
+		ab.String()
 	`
 
 	U256UnsafeSubScriptTemplate = `
 		const c = U256(%v)
 		const d = U256(%v)
 		const cd = c.UnsafeSub(d)
-		cd.ToString()
+		cd.String()
 	`
 
 	U256ShiftScriptTemplate = `
@@ -169,7 +169,7 @@ const (
 		const a = U256(%v)
 		const toBuf = a.ToBuf()
 		const toHex = a.ToHex()
-		const toString = a.ToString()
+		const toString = a.String()
 	`
 )
 

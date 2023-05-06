@@ -214,9 +214,7 @@ func (u Uint256) ToHex(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
 	return vm.ToValue(u.X.Hex())
 }
 
-func (u Uint256) ToString(f goja.FunctionCall, vm *goja.Runtime) goja.Value {
-	if len(f.Arguments) != 0 {
-		panic(vm.ToValue("ToString has no arguments."))
-	}
-	return vm.ToValue(u.X.String())
+// Stringer interface
+func (u Uint256) String() string {
+	return u.X.String()
 }

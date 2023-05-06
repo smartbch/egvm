@@ -58,6 +58,7 @@ func registerFunctions(vm *goja.Runtime) {
 	// buffer functions
 	vm.Set("BufConcat", extension.BufConcat)
 	vm.Set("HexToBuf", extension.HexToBuf)
+	vm.Set("UTF8StrToBuf", extension.UTF8StrToBuf)
 	vm.Set("HexToPaddingBuf", extension.HexToPaddingBuf)
 	vm.Set("B64ToBuf", extension.B64ToBuf)
 	vm.Set("BufToB64", extension.BufToB64)
@@ -95,6 +96,10 @@ func registerFunctions(vm *goja.Runtime) {
 	vm.Set("GetTSC", extension.GetTSC)
 	vm.Set("GetTSCBenchStart", extension.GetTSCBenchStart)
 	vm.Set("GetTSCBenchEnd", extension.GetTSCBenchEnd)
+
+	// debug
+	vm.Set("Printf", extension.Printf)
+	vm.Set("Println", extension.Println)
 
 	// ---------- http(s) request ----------
 	vm.Set("HttpsRequest", request.HttpsRequest)

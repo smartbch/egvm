@@ -74,14 +74,9 @@ function Match(highPrice, midPrice, lowPrice, bidList, askList) {
     bidList.sort(orderComparator)
     askList.sort(orderComparator)
 
-    Printf("1 Now bidList is %v\n", bidList)
-    Printf("1 Now askList is %v\n", askList)
-
     while (bidList.length > 0 && askList.length > 0 && askList[0].getPrice().Lte(bidList[0].getPrice())) {
         const price = GetExecutionPrice(highPrice, midPrice, lowPrice, bidList, askList)
         ExecuteOrderList(price, bidList, askList)
-        Printf("4 Now bidList is %v\n", bidList)
-        Printf("4 Now askList is %v\n", askList)
     }
 }
 
@@ -94,36 +89,21 @@ function ExecuteOrderList(price, bidList, askList) {
 			break
 		}
 
-		askList = ExecuteOrder(price, bidList[0], askList)
-		if (bidList.length > 0 && bidList[0].getAmount().IsZero()) {
-			bidList.shift()
-		}
-        if (askList.length > 0 && askList[0].getAmount().IsZero()) {
-            askList.shift()
-        }
+        ExecuteOrder(price, bidList[0], askList)
+        clearZeroOrderList(bidList)
 
 		if (askList.length === 0 || bidList.length === 0 ||
 			bidList[0].getPrice().Lt(price) || askList[0].getPrice().Gt(price)) {
 			break
 		}
 
-		bidList = ExecuteOrder(price, askList[0], bidList)
-        if (bidList.length > 0 && bidList[0].getAmount().IsZero()) {
-            bidList.shift()
-        }
-        if (askList.length > 0 && askList[0].getAmount().IsZero()) {
-            askList.shift()
-        }
+        ExecuteOrder(price, askList[0], bidList)
+        clearZeroOrderList(askList)
 	}
-
-    Printf("3 Now bidList is %v\n", bidList)
-    Printf("3 Now askList is %v\n", askList)
 }
 
-// Given price, execute currOrder against orders in orderList
-// return: Order[]
+// Given price, execute order and againstOrders
 function ExecuteOrder(price, order, againstOrders) {
-    let firstNonZeroIndex = 0
     for (let i = 0; i < againstOrders.length; i++) {
         if (againstOrders[i].getSide() === OrderSide.buy) {
             if (againstOrders[i].getPrice().Lt(price)) {
@@ -141,19 +121,12 @@ function ExecuteOrder(price, order, againstOrders) {
         }
 
         order.deal(againstOrders[i], minAmount, price)
-        if (againstOrders[i].getAmount().IsZero()) {
-            firstNonZeroIndex++
-        }
+        clearZeroOrderList(againstOrders)
+
         if (order.getAmount().IsZero()) {
             break
         }
     }
-
-    if (firstNonZeroIndex < againstOrders.length) {
-        return againstOrders.slice(firstNonZeroIndex)
-    }
-
-    return []
 }
 
 // parameters: (U256, U256, U256, Order[], Order[])
@@ -162,9 +135,14 @@ function GetExecutionPrice(highPrice, midPrice, lowPrice, bidList, askList) {
     let orderList = bidList.concat(askList)
     let ppList = createPricePointList(orderList)
     accumulateForPricePointList(ppList)
-    Printf("2 Now bidList is %v\n", bidList)
-    Printf("2 Now askList is %v\n", askList)
     return calculateExecutionPrice(highPrice, midPrice, lowPrice, ppList)
+}
+
+
+function clearZeroOrderList(orderList) {
+    while (orderList.length > 0 && orderList[0].getAmount().IsZero()) {
+        orderList.shift()
+    }
 }
 
 // ----------------------------------------------------------------

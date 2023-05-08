@@ -1,7 +1,203 @@
+const JSONRPC_VERSION = '2.0';
+const JSONRPC_ID = 1
+const CHAIN_ID = '0x2710'
+const CONFIRMATION = 10
+const HTTP_METHOD_GET = 'GET'
+const HTTP_METHOD_POST = 'POST'
 const OrderSide = {
     buy: "buy",
     sell: "sell",
 }
+
+// ----------------------------------------------------------------
+
+class Oracle {
+    constructor() {
+        // {
+        //     '0x2710': ['rpc1', 'rpc2', 'rpc3', 'rpc4']
+        // }
+        this.chainMap = new Map(); // chainId => rpcURLs
+        this.chainIds = []; // keep chainIds index order
+    }
+
+    // parameters: (string(hex), string array)
+    setChain(chainId, rpcURLs) {
+        if (rpcURLs.length < 3) { //TODO: add more rpcs
+            throw new Error('No enough RPC URLs provided')
+        }
+
+        // if add new chain, record the index
+        if (this.chainMap.get(chainId) === undefined) {
+            this.chainIds.push(chainId)
+        }
+        this.chainMap.set(chainId, rpcURLs)
+    }
+
+    reset() {
+        this.chainIds.clear()
+        this.chainMap.clear()
+    }
+
+    // return: (string[], U256)
+    getLatestHeightFromMultiChains() {
+        let latestHeights = []
+        let latestTimestamps = []
+        // getLatestHeightFromMultiChains: 通过对接若干RPC服务商针对不同Chain的Node，得到大家公认的最新的区块高度[L1, L2, ..., Ln], 同时计算出TL
+
+        Printf('chainIds: %v\n', this.chainIds)
+        for (let i = 0; i < this.chainIds.length; i++) {
+            let chainId = this.chainIds[i]
+            let rpcURLs = this.chainMap.get(chainId)
+            Printf('rpcURLs: %v\n', rpcURLs)
+
+            let latestHeightsInChain = []
+            for (let j = 0; j < rpcURLs.length; j++) {
+                const latestBlockNumResp = HttpsRequest(HTTP_METHOD_POST, rpcURLs[j], JSON.stringify(genBlockNumberReq()), 'Content-Type:application/json')
+                if (latestBlockNumResp.StatusCode !== 200) {
+                    latestHeightsInChain.push(new Error('Get block number error: ' + latestBlockNumResp.Status))
+                }
+
+                const latestBlockNumBody = JSON.parse(latestBlockNumResp.Body)
+                const latestBlockNumberHex = latestBlockNumBody.result
+                latestHeightsInChain.push(latestBlockNumberHex)
+            }
+            Printf('latestHeightsInChain: %v\n', latestHeightsInChain)
+
+            let [latestHeightInChain, ok] = checkLatestHeightInProofMode(latestHeightsInChain)
+            if (!ok) {
+                Printf('Cannot get latest height in proof mode')
+                return
+            }
+
+            latestHeights.push(latestHeightInChain)
+
+            const headerResp = HttpsRequest(HTTP_METHOD_POST, rpcURLs[0], JSON.stringify(genGetBlockHeaderReq(latestHeightInChain)), 'Content-Type:application/json');
+            if (headerResp.StatusCode !== 200) {
+                return new Error('Get block header error: ' + headerResp.Status)
+            }
+            const headerBody = JSON.parse(headerResp.Body)
+            const timestamp = headerBody.result.timestamp
+            latestTimestamps.push(timestamp)
+        }
+
+        return [latestHeights, findMinHex(latestTimestamps)]
+    }
+}
+
+function hex2Number(hex) {
+    return parseInt(hex, 16)
+}
+
+function number2Hex(num) {
+    return '0x' + num.toString(16);
+}
+
+function findMinHex(hexList) {
+    let numList = []
+    for (let i = 0; i < hexList.length; i++) {
+        numList.push(hex2Number(hexList[i]))
+    }
+    return number2Hex(Math.min(...numList));
+}
+
+function findMaxHex(hexList) {
+    let numList = []
+    for (let i = 0; i < hexList.length; i++) {
+        numList.push(hex2Number(hexList[i]))
+    }
+    return number2Hex(Math.max(...numList));
+}
+
+function checkLatestHeightInProofMode(latestHeightsInChain) {
+    if (latestHeightsInChain.length === 0) {
+        return ['0x0', false]
+    }
+
+    let unavailableNum = 0;
+    let baseHeight
+    for (let i = 0; i < latestHeightsInChain.length; i++) {
+        if (latestHeightsInChain[i] instanceof Error) {
+            unavailableNum++
+            continue
+        }
+
+        if (baseHeight === undefined && !(latestHeightsInChain[i] instanceof Error)) {
+            baseHeight = latestHeightsInChain[i]
+            continue
+        }
+
+        if (baseHeight !== latestHeightsInChain[i]) {
+            return ['0x0', false]
+        }
+    }
+
+    return [baseHeight, unavailableNum <= 1];
+}
+
+function genBlockNumberReq() {
+    return {
+        'jsonrpc': JSONRPC_VERSION,
+        'method': 'eth_blockNumber',
+        'params': [],
+        'id': JSONRPC_ID
+    }
+}
+
+function genGetBlockHeaderReq(blockNumberHex) {
+    return {
+        'jsonrpc': JSONRPC_VERSION,
+        'method': 'eth_getBlockByNumber',
+        'params': [
+            blockNumberHex,
+            false
+        ],
+        'id': JSONRPC_ID
+    }
+}
+
+function genGetLogReq(fromBlock, toBlock, sourceContract, topics) {
+    return {
+        'jsonrpc': JSONRPC_VERSION,
+        'method': 'eth_getLogs',
+        'params': [
+            {
+                'fromBlock': fromBlock,
+                'toBlock': toBlock,
+                'address': sourceContract,
+                'topics': topics
+            }
+        ],
+        'id': JSONRPC_ID
+    }
+}
+
+function isIn(v, vList) {
+    for (let i = 0; i < vList.length; i++) {
+        if (v === vList[i]) {
+            return true
+        }
+    }
+    return false
+}
+
+function haveError(vList) {
+    for (let i = 0; i < vList.length; i++) {
+        if (vList[i] instanceof Error) {
+            return true
+        }
+    }
+    return false
+}
+
+function haveNull(vList) {
+    for (let i = 0; i < vList.length; i++) {
+        if (vList[i] === null) {
+            return true
+        }
+    }
+    return false
+}
+
 
 // ----------------------------------------------------------------
 
@@ -330,7 +526,7 @@ function newOrderForTest(price, height, totalAmount, side, owner) {
     return new Order(U256(price), height, U256(totalAmount), side, owner)
 }
 
-function test() {
+function testMatch() {
     let order1 = newOrderForTest(100, 1, 150, OrderSide.buy, 'buyer1')
     let order2 = newOrderForTest(98, 1, 150, OrderSide.buy, 'buyer2')
     let bidList = [order1, order2]
@@ -338,8 +534,26 @@ function test() {
     let order4 = newOrderForTest(97, 1, 50, OrderSide.sell, 'seller2')
     let askList = [order3, order4]
 
-
     Match(U256(100), U256(100), U256(100), bidList, askList)
 }
 
-test()
+function testHex2Number() {
+    let hexList = ['0x63ae4736', '0x63ae4735', '0x63ae4734']
+    Printf('min: %v\n', findMinHex(hexList))
+}
+
+
+function testOracle() {
+    const sbchURLs = ['https://rpc.smartbch.org', 'https://sbch-mainnet.paralinker.com/api/v1/4fd540be7cf14c437786be6415822325', 'https://smartbch.greyh.at']
+    const oracle = new Oracle()
+    oracle.setChain('0x2710', sbchURLs)
+    Printf('oracle: %v\n', oracle)
+
+    let [latestHeights, latestTimestamp] = oracle.getLatestHeightFromMultiChains()
+    Printf('latestHeights: %v\n', latestHeights)
+    Printf('latestTimestamp: %v\n', latestTimestamp)
+}
+
+// testMatch()
+// testHex2Number()
+testOracle()

@@ -80,7 +80,7 @@ function Match(highPrice, midPrice, lowPrice, bidList, askList) {
     }
 }
 
-// Given price, execute the orders in bidList and askList
+// Given price, execute the orders in bidList and askList inplace
 // parameters: (U256, U256, U256, Order[], Order[])
 function ExecuteOrderList(price, bidList, askList) {
 	while (true) {
@@ -102,7 +102,7 @@ function ExecuteOrderList(price, bidList, askList) {
 	}
 }
 
-// Given price, execute order and againstOrders
+// Given price, execute order and againstOrders inplace
 function ExecuteOrder(price, order, againstOrders) {
     for (let i = 0; i < againstOrders.length; i++) {
         if (againstOrders[i].getSide() === OrderSide.buy) {

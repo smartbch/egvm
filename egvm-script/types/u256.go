@@ -34,6 +34,14 @@ func (u Uint256) ToS256() Sint256 {
 	return Sint256{x: u.X.Clone()}
 }
 
+func (u Uint256) Incr() Uint256 {
+	result, overflow := uint256.NewInt(0).AddOverflow(u.X, uint256.NewInt(1))
+	if overflow {
+		panic(goja.NewSymbol("overflow in addition"))
+	}
+	return Uint256{X: result}
+}
+
 func (u Uint256) Add(v Uint256) Uint256 {
 	result, overflow := uint256.NewInt(0).AddOverflow(u.X, v.X)
 	if overflow {

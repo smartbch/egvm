@@ -43,6 +43,8 @@ func HttpsRequest(method, serverURL, body string, headers ...string) HttpRespons
 	if err != nil {
 		panic(goja.NewSymbol("Error in parsing http request: " + err.Error()))
 	}
+	// disable keepalive
+	req.Close = true
 
 	client := &http.Client{
 		Transport: &http.Transport{

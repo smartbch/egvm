@@ -101,6 +101,10 @@ func registerFunctions(vm *goja.Runtime) {
 	vm.Set("Printf", extension.Printf)
 	vm.Set("Println", extension.Println)
 
+	// system
+	vm.Set("Sleep", extension.Sleep)
+	vm.Set("SleepMs", extension.SleepMs)
+
 	// ---------- http(s) request ----------
 	vm.Set("HttpsRequest", request.HttpsRequest)
 	vm.Set("AttestEnclaveServer", request.AttestEnclaveServer)

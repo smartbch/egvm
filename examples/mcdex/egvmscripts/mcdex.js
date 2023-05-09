@@ -1,12 +1,19 @@
-const JSONRPC_VERSION = '2.0';
+const JSONRPC_VERSION = '2.0'
 const JSONRPC_ID = 1
-const CHAIN_ID = '0x2710'
-const CONFIRMATION = 10
 const HTTP_METHOD_GET = 'GET'
 const HTTP_METHOD_POST = 'POST'
+const SourceContract = '0x77CB87b57F54667978Eb1B199b28a0db8C8E1c0B'
+const Topic0ForMCDex = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef'
 const OrderSide = {
     buy: "buy",
     sell: "sell",
+}
+
+
+// No blocks to be synchronized before MCDEX is deployed to the mainnet
+const INITIAL_HEIGHT_MAP = {
+    '0x2710': '0x91ca05',
+    '0x38': '0x1ac1799',
 }
 
 // ----------------------------------------------------------------
@@ -18,17 +25,23 @@ class Oracle {
         // }
         this.chainMap = new Map(); // chainId => rpcURLs
         this.chainIds = []; // keep chainIds index order
+        this.processedHeights = []; // record the heights that have been processed according to the order of the chainIds
     }
 
     // parameters: (string(hex), string array)
     setChain(chainId, rpcURLs) {
-        if (rpcURLs.length < 3) { //TODO: add more rpcs
+        if (rpcURLs.length < 1) { //TODO: at least 4 rpcs for each chain
             throw new Error('No enough RPC URLs provided')
         }
 
         // if add new chain, record the index
         if (this.chainMap.get(chainId) === undefined) {
             this.chainIds.push(chainId)
+            const initialHeight = INITIAL_HEIGHT_MAP[chainId]
+            if (initialHeight === undefined) {
+                throw new Error('No initial height for chainId: ' + chainId)
+            }
+            this.processedHeights.push(initialHeight)
         }
         this.chainMap.set(chainId, rpcURLs)
     }
@@ -42,7 +55,6 @@ class Oracle {
     getLatestHeightFromMultiChains() {
         let latestHeights = []
         let latestTimestamps = []
-        // getLatestHeightFromMultiChains: 通过对接若干RPC服务商针对不同Chain的Node，得到大家公认的最新的区块高度[L1, L2, ..., Ln], 同时计算出TL
 
         Printf('chainIds: %v\n', this.chainIds)
         for (let i = 0; i < this.chainIds.length; i++) {
@@ -61,26 +73,100 @@ class Oracle {
                 const latestBlockNumberHex = latestBlockNumBody.result
                 latestHeightsInChain.push(latestBlockNumberHex)
             }
-            Printf('latestHeightsInChain: %v\n', latestHeightsInChain)
+            Printf('latestHeightsInChain %v: %v\n', i, latestHeightsInChain)
 
             let [latestHeightInChain, ok] = checkLatestHeightInProofMode(latestHeightsInChain)
             if (!ok) {
-                Printf('Cannot get latest height in proof mode')
-                return
+                throw new Error('Check latest height in proof mode failed')
             }
 
             latestHeights.push(latestHeightInChain)
+            Printf('latestHeights: %v\n', latestHeights)
+            SleepMs(300)
 
             const headerResp = HttpsRequest(HTTP_METHOD_POST, rpcURLs[0], JSON.stringify(genGetBlockHeaderReq(latestHeightInChain)), 'Content-Type:application/json');
             if (headerResp.StatusCode !== 200) {
-                return new Error('Get block header error: ' + headerResp.Status)
+                throw new Error('Get block header error: ' + headerResp.Status)
             }
             const headerBody = JSON.parse(headerResp.Body)
             const timestamp = headerBody.result.timestamp
+            Printf('latestHeightsTimestamp %v: %v\n', i, timestamp)
             latestTimestamps.push(timestamp)
+
+            SleepMs(300)
         }
 
         return [latestHeights, findMinHex(latestTimestamps)]
+    }
+
+    // blockInfo:
+    // {
+    //     chainId: <string>,
+    //     height: <string>,
+    //     timestamp: <string>,
+    //     hash: <string>,
+    //     focused: <bool>;
+    // }
+    // parameters: string[], string
+    // return: blockInfo[]
+    getNewGloballyConfirmedBlocks(latestHeights, latestTimestamp) {
+        let globallyConfirmedBlockInfos = []
+        for (let i = 0; i < this.chainIds.length; i++) {
+            const currentChainId = this.chainIds[i]
+            let rpcURLs = this.chainMap.get(currentChainId)
+            const defaultRpcURL = rpcURLs[0]
+            Printf('defaultRpcURL: %v\n', defaultRpcURL)
+
+            const latestHeightU256 = HexToU256(latestHeights[i])
+            let globallyConfirmedHeight = HexToU256(this.processedHeights[i])
+
+            while (true) {
+                if (globallyConfirmedHeight.Gt(latestHeightU256)) {
+                    break
+                }
+
+                const nextHeight = globallyConfirmedHeight.Incr()
+                const headerResp = HttpsRequest(HTTP_METHOD_POST, defaultRpcURL, JSON.stringify(genGetBlockHeaderReq(nextHeight.ToHex())), 'Content-Type:application/json');
+                if (headerResp.StatusCode !== 200) {
+                    throw new Error('Get block header error: ' + headerResp.Status)
+                }
+
+                const headerBody = JSON.parse(headerResp.Body)
+                const timestamp = headerBody.result.timestamp
+                if (HexToU256(timestamp).Gt(HexToU256(latestTimestamp))) {
+                    break
+                }
+
+                const hash = headerBody.result.hash
+                let blockInfo = {
+                    chainId: currentChainId,
+                    height: nextHeight.ToHex(),
+                    timestamp: timestamp,
+                    hash: hash,
+                    focused: false
+                }
+                globallyConfirmedBlockInfos.push(blockInfo)
+                globallyConfirmedHeight = nextHeight
+
+                SleepMs(300)
+            }
+        }
+
+        globallyConfirmedBlockInfos.sort(blockInfoComparator)
+        return globallyConfirmedBlockInfos
+    }
+}
+
+
+// The block with the smaller timestamp is ranked first,
+// if the timestamps are the same, the hash will be compared
+function blockInfoComparator(a, b) {
+    if (HexToU256(a.timestamp).Lt(HexToU256(b.timestamp))) {
+        return -1
+    } else if (HexToU256(a.timestamp).Gt(HexToU256(b.timestamp))) {
+        return 1
+    } else {
+        return BufCompare(HexToBuf(a.hash), HexToBuf(b.hash))
     }
 }
 
@@ -113,25 +199,22 @@ function checkLatestHeightInProofMode(latestHeightsInChain) {
         return ['0x0', false]
     }
 
-    let unavailableNum = 0;
-    let baseHeight
+    let unavailableNum = 0
+    let nonErrorOrNullHeights = []
     for (let i = 0; i < latestHeightsInChain.length; i++) {
         if (latestHeightsInChain[i] instanceof Error) {
             unavailableNum++
             continue
         }
 
-        if (baseHeight === undefined && !(latestHeightsInChain[i] instanceof Error)) {
-            baseHeight = latestHeightsInChain[i]
-            continue
-        }
-
-        if (baseHeight !== latestHeightsInChain[i]) {
+        if (latestHeightsInChain[i] === '' || latestHeightsInChain[i] === null) {
             return ['0x0', false]
         }
+
+        nonErrorOrNullHeights.push(latestHeightsInChain[i])
     }
 
-    return [baseHeight, unavailableNum <= 1];
+    return [findMinHex(nonErrorOrNullHeights), unavailableNum <= 1];
 }
 
 function genBlockNumberReq() {
@@ -544,14 +627,20 @@ function testHex2Number() {
 
 
 function testOracle() {
-    const sbchURLs = ['https://rpc.smartbch.org', 'https://sbch-mainnet.paralinker.com/api/v1/4fd540be7cf14c437786be6415822325', 'https://smartbch.greyh.at']
+    // const sbchURLs = ['https://rpc.smartbch.org', 'https://sbch-mainnet.paralinker.com/api/v1/4fd540be7cf14c437786be6415822325', 'https://smartbch.greyh.at', 'https://smartbch.fountainhead.cash/mainnet']
+    const sbchURLs = ['https://sbch-mainnet.paralinker.com/api/v1/4fd540be7cf14c437786be6415822325']
+    const bscURLs = ['https://bsc-mainnet.paralinker.com/api/v1/81cfef4b310965726b5326afb51ff093']
     const oracle = new Oracle()
     oracle.setChain('0x2710', sbchURLs)
+    oracle.setChain('0x38', bscURLs)
     Printf('oracle: %v\n', oracle)
 
     let [latestHeights, latestTimestamp] = oracle.getLatestHeightFromMultiChains()
     Printf('latestHeights: %v\n', latestHeights)
     Printf('latestTimestamp: %v\n', latestTimestamp)
+
+    let globallyBlocks = oracle.getNewGloballyConfirmedBlocks(latestHeights, latestTimestamp)
+    Printf('globallyBlocks: %v\n', globallyBlocks)
 }
 
 // testMatch()

@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -21,6 +22,17 @@ const (
 	HttpScriptTemplate = `
 		//const resp = HttpsRequest('GET', 'https://elfinauth.paralinker.io/smartbch/eh_ping', '', 'Content-Type:application/json')
 		const resp = HttpsRequest('GET', 'https://elfincdn111.paralinker.io/eh_ping', '', 'Content-Type:application/json')
+		const body = resp.Body
+	`
+
+	BSCScriptTemplate = `
+		const req = {
+			'jsonrpc': 2.0,
+			'method': 'eth_blockNumber',
+			'params': [],
+			'id': 1
+		}
+		const resp = HttpsRequest('POST', 'https://bsc-mainnet.paralinker.com/api/v1/81cfef4b310965726b5326afb51ff093', JSON.stringify(req), 'Content-Type:application/json')
 		const body = resp.Body
 	`
 )
@@ -78,4 +90,24 @@ func TestHttpRequest(t *testing.T) {
 	resp := vm.Get("resp").Export().(HttpResponse)
 	require.EqualValues(t, 200, resp.StatusCode)
 	require.EqualValues(t, `{"isSuccess":true,"message":"pong"}`, resp.Body)
+}
+
+func TestBSC(t *testing.T) {
+	body := `{
+		"jsonrpc": "2.0",
+		"method": "eth_blockNumber",
+		"params": [],
+		"id": 1
+	}`
+	response := HttpsRequest("POST", "https://bsc-mainnet.paralinker.com/api/v1/81cfef4b310965726b5326afb51ff093", body, "Content-Type:application/json")
+	fmt.Printf("response: %v\n", response)
+
+	//vm := setupGojaVmForHttp()
+	//tlsConfig, _ = loadTlsConfigForTest(TrustedCertsPathForTest)
+	//_, err := vm.RunString(BSCScriptTemplate)
+	//require.NoError(t, err)
+	//
+	//resp := vm.Get("resp").Export().(HttpResponse)
+	//require.EqualValues(t, 200, resp.StatusCode)
+	//require.EqualValues(t, `{"isSuccess":true,"message":"pong"}`, resp.Body)
 }

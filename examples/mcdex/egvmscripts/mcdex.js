@@ -12,8 +12,8 @@ const OrderSide = {
 
 // No blocks to be synchronized before MCDEX is deployed to the mainnet
 const INITIAL_HEIGHT_MAP = {
-    '0x2710': '0x91ca05',
-    '0x38': '0x1ac1799',
+    '0x2710': '0x91eb72',
+    '0x38': '0x1ac5b9f',
 }
 
 // ----------------------------------------------------------------
@@ -115,7 +115,6 @@ class Oracle {
             const currentChainId = this.chainIds[i]
             let rpcURLs = this.chainMap.get(currentChainId)
             const defaultRpcURL = rpcURLs[0]
-            Printf('defaultRpcURL: %v\n', defaultRpcURL)
 
             const latestHeightU256 = HexToU256(latestHeights[i])
             let globallyConfirmedHeight = HexToU256(this.processedHeights[i])

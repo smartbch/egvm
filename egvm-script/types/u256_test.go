@@ -8,7 +8,7 @@ import (
 	gethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 
-	"github.com/smartbch/pureauth/egvm-script/utils"
+	"github.com/smartbch/egvm/egvm-script/utils"
 )
 
 const (

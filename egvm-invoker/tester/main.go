@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/smartbch/pureauth/egvm-script/types"
+	"github.com/smartbch/egvm/egvm-script/types"
 )
 
 var invokerUrl = "http://127.0.0.1:8001/execute"

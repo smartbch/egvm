@@ -1,4 +1,4 @@
-module github.com/smartbch/pureauth
+module github.com/smartbch/egvm
 
 go 1.18
 

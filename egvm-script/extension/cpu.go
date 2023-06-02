@@ -8,7 +8,7 @@ import (
 	"github.com/dterei/gotsc"
 	"github.com/klauspost/cpuid/v2"
 
-	"github.com/smartbch/pureauth/egvm-script/utils"
+	"github.com/smartbch/egvm/egvm-script/utils"
 )
 
 type cpuInfoOutput struct {

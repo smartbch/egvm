@@ -6,7 +6,7 @@ import (
 	"github.com/tinylib/msgp/msgp"
 	"modernc.org/b/v2"
 
-	"github.com/smartbch/pureauth/egvm-script/utils"
+	"github.com/smartbch/egvm/egvm-script/utils"
 )
 
 type OrderedIntMapIter struct {

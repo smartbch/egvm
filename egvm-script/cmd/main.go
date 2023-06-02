@@ -12,9 +12,9 @@ import (
 	"github.com/dop251/goja"
 	"github.com/tinylib/msgp/msgp"
 
-	"github.com/smartbch/pureauth/egvm-script/context"
-	"github.com/smartbch/pureauth/egvm-script/request"
-	"github.com/smartbch/pureauth/egvm-script/types"
+	"github.com/smartbch/egvm/egvm-script/context"
+	"github.com/smartbch/egvm/egvm-script/request"
+	"github.com/smartbch/egvm/egvm-script/types"
 )
 
 var maxMemSize uint64 = 1024 * 1024 * 1024   // 1G

@@ -8,7 +8,7 @@ import (
 	"github.com/dop251/goja"
 	gethcmn "github.com/ethereum/go-ethereum/common"
 
-	"github.com/smartbch/pureauth/egvm-script/utils"
+	"github.com/smartbch/egvm/egvm-script/utils"
 )
 
 func BufConcat(f goja.FunctionCall, vm *goja.Runtime) goja.Value {

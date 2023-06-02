@@ -9,7 +9,7 @@ import (
 	"github.com/dop251/goja"
 	"golang.org/x/crypto/sha3"
 
-	"github.com/smartbch/pureauth/egvm-script/utils"
+	"github.com/smartbch/egvm/egvm-script/utils"
 )
 
 func verifyMerkleProof(f goja.FunctionCall, vm *goja.Runtime, h hash.Hash) goja.Value {

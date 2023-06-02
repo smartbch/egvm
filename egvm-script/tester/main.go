@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/smartbch/pureauth/egvm-script/types"
+	"github.com/smartbch/egvm/egvm-script/types"
 )
 
 func main() {

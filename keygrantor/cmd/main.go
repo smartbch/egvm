@@ -17,7 +17,7 @@ import (
 	"github.com/edgelesssys/ego/enclave"
 	"github.com/tyler-smith/go-bip32"
 
-	"github.com/smartbch/pureauth/keygrantor"
+	"github.com/smartbch/egvm/keygrantor"
 )
 
 var (

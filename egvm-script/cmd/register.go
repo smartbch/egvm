@@ -2,11 +2,11 @@ package main
 
 import (
 	"github.com/dop251/goja"
-	"github.com/smartbch/pureauth/egvm-script/context"
+	"github.com/smartbch/egvm/egvm-script/context"
 
-	"github.com/smartbch/pureauth/egvm-script/extension"
-	"github.com/smartbch/pureauth/egvm-script/request"
-	"github.com/smartbch/pureauth/egvm-script/types"
+	"github.com/smartbch/egvm/egvm-script/extension"
+	"github.com/smartbch/egvm/egvm-script/request"
+	"github.com/smartbch/egvm/egvm-script/types"
 )
 
 func registerFunctions(vm *goja.Runtime) {

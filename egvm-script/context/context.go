@@ -10,9 +10,9 @@ import (
 	"runtime"
 	"sort"
 
-	"github.com/smartbch/pureauth/egvm-script/extension"
-	"github.com/smartbch/pureauth/egvm-script/types"
-	"github.com/smartbch/pureauth/keygrantor"
+	"github.com/smartbch/egvm/egvm-script/extension"
+	"github.com/smartbch/egvm/egvm-script/types"
+	"github.com/smartbch/egvm/keygrantor"
 )
 
 type EGVMContext struct {

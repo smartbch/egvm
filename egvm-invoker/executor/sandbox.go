@@ -7,7 +7,7 @@ import (
 
 	"github.com/tinylib/msgp/msgp"
 
-	"github.com/smartbch/pureauth/egvm-script/types"
+	"github.com/smartbch/egvm/egvm-script/types"
 )
 
 type Sandbox struct {

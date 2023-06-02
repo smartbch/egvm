@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/smartbch/pureauth/egvm-script/types"
+	"github.com/smartbch/egvm/egvm-script/types"
 )
 
 var (

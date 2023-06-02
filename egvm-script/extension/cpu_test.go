@@ -7,7 +7,7 @@ import (
 	"github.com/dop251/goja"
 	"github.com/stretchr/testify/require"
 
-	"github.com/smartbch/pureauth/egvm-script/types"
+	"github.com/smartbch/egvm/egvm-script/types"
 )
 
 const (

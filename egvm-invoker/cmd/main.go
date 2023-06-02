@@ -9,8 +9,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/smartbch/pureauth/egvm-invoker/executor"
-	"github.com/smartbch/pureauth/egvm-script/types"
+	"github.com/smartbch/egvm/egvm-invoker/executor"
+	"github.com/smartbch/egvm/egvm-script/types"
 )
 
 func main() {

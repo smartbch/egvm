@@ -4,7 +4,7 @@ import (
 	"github.com/dop251/goja"
 	"github.com/klauspost/compress/zstd"
 
-	"github.com/smartbch/pureauth/egvm-script/utils"
+	"github.com/smartbch/egvm/egvm-script/utils"
 )
 
 // ================================

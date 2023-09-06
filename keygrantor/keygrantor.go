@@ -1,6 +1,5 @@
 package keygrantor
 
-import "C"
 import (
 	"bytes"
 	"crypto/sha256"
@@ -46,11 +45,11 @@ type GetKeyParams struct {
 
 func generateRandom64Bytes() []byte {
 	var out []byte
-	//var x C.uint16_t
-	//var retry C.int = 1
+	var x C.uint16_t
+	var retry C.int = 1
 	for i := 0; i < 64; i++ {
-		//C.rdrand16(&x, retry)
-		//out = append(out, byte(x))
+		C.rdrand16(&x, retry)
+		out = append(out, byte(x))
 	}
 	return out
 }

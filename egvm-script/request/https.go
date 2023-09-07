@@ -23,7 +23,7 @@ var (
 
 func InitTrustedHttpsCerts(certs []string) error {
 	var err error
-	tlsConfig, err = loadTlsConfig(certs)
+	tlsConfig, err = LoadTlsConfig(certs)
 	return err
 }
 
@@ -107,7 +107,7 @@ func newHttpResponse(resp *http.Response) (result HttpResponse, err error) {
 	return
 }
 
-func loadTlsConfig(certs []string) (*tls.Config, error) {
+func LoadTlsConfig(certs []string) (*tls.Config, error) {
 	tlsConfig := &tls.Config{RootCAs: x509.NewCertPool()}
 
 	for _, c := range certs {

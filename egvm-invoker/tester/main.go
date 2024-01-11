@@ -7,7 +7,6 @@ import (
 	"flag"
 	"fmt"
 	"github.com/tinylib/msgp/msgp"
-	"io"
 	"net/http"
 	"os"
 	"strings"
@@ -64,8 +63,8 @@ func main() {
 	}
 
 	fmt.Printf("resp: %+v\n", resp)
-	bz, _ := io.ReadAll(gr)
-	fmt.Printf("uncompressed bz: %v\n", bz)
+	//bz, _ := io.ReadAll(gr)
+	//fmt.Printf("uncompressed bz: %v\n", bz)
 	var res types.LambdaResult
 	err = res.DecodeMsg(msgp.NewReader(gr))
 	if err != nil {

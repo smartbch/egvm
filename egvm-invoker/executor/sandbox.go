@@ -1,12 +1,12 @@
 package executor
 
 import (
+	"bufio"
+	"github.com/tinylib/msgp/msgp"
 	"io"
 	"os"
 	"os/exec"
 	"runtime"
-
-	"github.com/tinylib/msgp/msgp"
 
 	"github.com/smartbch/egvm/egvm-script/types"
 )
@@ -27,11 +27,29 @@ func (b *Sandbox) executeJob(job *types.LambdaJob) (*types.LambdaResult, error) 
 	//err = job.EncodeMsg(msgp.NewWriter(b.stdin))
 	//if err != nil {
 	//	return nil, err
-	//}
+	//}'
+
 	var res types.LambdaResult
-	err = res.DecodeMsg(msgp.NewReader(b.stdout))
-	if err != nil {
-		return nil, err
+	if runtime.GOOS == "darwin" {
+		err = res.DecodeMsg(msgp.NewReader(b.stdout))
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		// linux, running in ego
+		counter := 0
+		sc := bufio.NewScanner(b.stdout)
+		for sc.Scan() {
+			lineBz := sc.Bytes()
+			if counter == 3 {
+				_, err := res.UnmarshalMsg(lineBz)
+				if err != nil {
+					return nil, err
+				}
+				break
+			}
+			counter++
+		}
 	}
 	return &res, nil
 }

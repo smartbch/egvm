@@ -77,6 +77,7 @@ func executeLambdaJob(isSingleMode bool, isPerpetualMode bool, timeLimit int64, 
 		res := context.CollectResult(e)
 		bz, _ := res.MarshalMsg(nil)
 		_, err = os.Stdout.Write(bz)
+		_, err = os.Stdout.WriteString("\n")
 		if err != nil {
 			panic(err)
 		}

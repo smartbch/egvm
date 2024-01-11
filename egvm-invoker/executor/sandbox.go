@@ -12,9 +12,10 @@ import (
 )
 
 type Sandbox struct {
-	name   string
-	stdin  io.WriteCloser
-	stdout io.ReadCloser
+	name     string
+	stdin    io.WriteCloser
+	stdout   io.ReadCloser
+	firstRun bool
 }
 
 func (b *Sandbox) executeJob(job *types.LambdaJob) (*types.LambdaResult, error) {
@@ -30,13 +31,13 @@ func (b *Sandbox) executeJob(job *types.LambdaJob) (*types.LambdaResult, error) 
 	//}'
 
 	var res types.LambdaResult
-	if runtime.GOOS == "darwin" {
+	if runtime.GOOS == "darwin" || !b.firstRun {
 		err = res.DecodeMsg(msgp.NewReader(b.stdout))
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		// linux, running in ego
+		// linux ego && first run
 		counter := 0
 		sc := bufio.NewScanner(b.stdout)
 		for sc.Scan() {
@@ -50,6 +51,7 @@ func (b *Sandbox) executeJob(job *types.LambdaJob) (*types.LambdaResult, error) 
 			}
 			counter++
 		}
+		b.firstRun = false
 	}
 	return &res, nil
 }
@@ -77,5 +79,5 @@ func NewAndStartSandbox(name string) *Sandbox {
 			panic(err)
 		}
 	}()
-	return &Sandbox{name: name, stdin: stdin, stdout: stdout}
+	return &Sandbox{name: name, stdin: stdin, stdout: stdout, firstRun: true}
 }

@@ -4,6 +4,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"runtime"
 
 	"github.com/tinylib/msgp/msgp"
 
@@ -36,7 +37,10 @@ func (b *Sandbox) executeJob(job *types.LambdaJob) (*types.LambdaResult, error) 
 }
 
 func NewAndStartSandbox(name string) *Sandbox {
-	cmd := exec.Command("./egvmscript")
+	cmd := exec.Command("ego", "run", "egvmscript")
+	if runtime.GOOS == "darwin" {
+		cmd = exec.Command("./egvmscript")
+	}
 	//if string(out) != "success" {
 	//	panic("new sandbox failed!")
 	//}

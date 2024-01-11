@@ -57,6 +57,7 @@ func addHttpHandler(m *executor.SandboxManager) {
 			gzipWrite(w, []byte("failed to marshal result body"))
 			return
 		}
+		fmt.Printf("result: %+v\n", result)
 		gzipWrite(w, out)
 		return
 	})

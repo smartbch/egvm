@@ -9,11 +9,11 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/edgelesssys/ego/eclient"
+	"github.com/edgelesssys/ego/enclave"
 )
 
 func VerifyEnclaveReportBz(pubKey, reportBz, signerIDBz, uniqueIDBz []byte) error {
-	report, err := eclient.VerifyRemoteReport(reportBz)
+	report, err := enclave.VerifyRemoteReport(reportBz)
 	if err != nil {
 		return err
 	}

@@ -2,7 +2,6 @@ package context
 
 import (
 	"crypto/sha256"
-	"fmt"
 	"github.com/dop251/goja"
 	"github.com/edgelesssys/ego/enclave"
 	gethcrypto "github.com/ethereum/go-ethereum/crypto"
@@ -60,7 +59,6 @@ func SetContext(job *types.LambdaJob, keygrantorUrl string) error {
 		if err != nil {
 			return err
 		}
-		fmt.Printf("privKey: %v\n", privKey)
 		EGVMCtx.privKey = extension.NewBip32Key(privKey)
 	}
 	return nil

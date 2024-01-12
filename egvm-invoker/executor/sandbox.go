@@ -2,11 +2,12 @@ package executor
 
 import (
 	"bufio"
-	"github.com/tinylib/msgp/msgp"
 	"io"
 	"os"
 	"os/exec"
 	"runtime"
+
+	"github.com/tinylib/msgp/msgp"
 
 	"github.com/smartbch/egvm/egvm-script/types"
 )
@@ -23,12 +24,10 @@ func (b *Sandbox) executeJob(job *types.LambdaJob) (*types.LambdaResult, error) 
 	if err != nil {
 		panic(err)
 	}
-	b.stdin.Write(bz)
-	// todo: why code commented below not work ?
-	//err = job.EncodeMsg(msgp.NewWriter(b.stdin))
-	//if err != nil {
-	//	return nil, err
-	//}'
+	_, err = b.stdin.Write(bz)
+	if err != nil {
+		panic(err)
+	}
 
 	var res types.LambdaResult
 	if runtime.GOOS == "darwin" || !b.firstRun {
@@ -61,9 +60,6 @@ func NewAndStartSandbox(name string) *Sandbox {
 	if runtime.GOOS == "darwin" {
 		cmd = exec.Command("./egvmscript")
 	}
-	//if string(out) != "success" {
-	//	panic("new sandbox failed!")
-	//}
 	stdin, err := cmd.StdinPipe()
 	if nil != err {
 		panic("Error obtaining stdin: " + err.Error())

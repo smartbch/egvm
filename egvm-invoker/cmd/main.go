@@ -4,7 +4,7 @@ import (
 	"compress/gzip"
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"time"
@@ -32,7 +32,7 @@ func addHttpHandler(m *executor.SandboxManager) {
 			gzipWrite(w, []byte("failed to uncompress request body"))
 			return
 		}
-		body, err := ioutil.ReadAll(uncompressedBody)
+		body, err := io.ReadAll(uncompressedBody)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			gzipWrite(w, []byte("failed to read request body"))
@@ -57,7 +57,6 @@ func addHttpHandler(m *executor.SandboxManager) {
 			gzipWrite(w, []byte("failed to marshal result body"))
 			return
 		}
-		fmt.Printf("result: %+v\n", result)
 		gzipWrite(w, out)
 		return
 	})

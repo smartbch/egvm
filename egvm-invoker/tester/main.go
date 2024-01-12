@@ -6,11 +6,12 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/tinylib/msgp/msgp"
 	"net/http"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/tinylib/msgp/msgp"
 
 	"github.com/smartbch/egvm/egvm-script/types"
 )
@@ -35,7 +36,6 @@ func main() {
 		panic(err)
 	}
 	job.Script = string(scriptB)
-	//fmt.Println(job.Script)
 	for _, certFile := range strings.Split(certFiles, ",") {
 		if certFile != "" {
 			certB, err := os.ReadFile(certFile)
@@ -62,9 +62,6 @@ func main() {
 		panic(err)
 	}
 
-	fmt.Printf("resp: %+v\n", resp)
-	//bz, _ := io.ReadAll(gr)
-	//fmt.Printf("uncompressed bz: %v\n", bz)
 	var res types.LambdaResult
 	err = res.DecodeMsg(msgp.NewReader(gr))
 	if err != nil {

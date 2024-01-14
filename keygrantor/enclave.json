@@ -8,7 +8,7 @@
   "securityVersion": 3,
   "mounts": [
     {
-      "source": "/home/azureuser/bear/keystore",
+      "source": "/home/azureuser/keygrantor/keystore",
       "target": "/data",
       "type": "hostfs",
       "readOnly": false

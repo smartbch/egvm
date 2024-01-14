@@ -28,7 +28,7 @@ func main() {
 	flag.Int64Var(&timeLimitInLoopMode, "t", defaultRunTimeLimitInLoopMode, "enable loop mode: specific run time limit in second")
 	flag.BoolVar(&singleMode, "s", false, "enable single mode: accept one input and return one output, then process exit")
 	flag.BoolVar(&perpetualMode, "p", false, "enable perpetual mode: not clear the state after script run, accept continuous input")
-	flag.StringVar(&keygrantorUrl, "k", "127.0.0.1:8084", "keygrantor url")
+	flag.StringVar(&keygrantorUrl, "k", "http://127.0.0.1:8084", "keygrantor url")
 	flag.Parse()
 	setRlimit(maxMemSize)
 	if perpetualMode {
@@ -77,6 +77,7 @@ func executeLambdaJob(isSingleMode bool, isPerpetualMode bool, timeLimit int64, 
 		res := context.CollectResult(e)
 		bz, _ := res.MarshalMsg(nil)
 		_, err = os.Stdout.Write(bz)
+		_, err = os.Stdout.WriteString("\n")
 		if err != nil {
 			panic(err)
 		}

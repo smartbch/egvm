@@ -6,20 +6,7 @@
   "executableHeap": false,
   "productID": 1,
   "securityVersion": 3,
-  "mounts": [
-    {
-      "source": "/home/jumpuser/soft/pureauth/egvm-script/testjs",
-      "target": "/testjs",
-      "type": "hostfs",
-      "readOnly": true
-    },
-    {
-      "source": "/home/jumpuser/soft/pureauth/egvm-script/certs",
-      "target": "/certs",
-      "type": "hostfs",
-      "readOnly": true
-    }
-  ],
+  "mounts": null,
   "env": null,
   "files": null
 }

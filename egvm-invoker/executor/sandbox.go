@@ -1,9 +1,11 @@
 package executor
 
 import (
+	"bufio"
 	"io"
 	"os"
 	"os/exec"
+	"runtime"
 
 	"github.com/tinylib/msgp/msgp"
 
@@ -11,9 +13,10 @@ import (
 )
 
 type Sandbox struct {
-	name   string
-	stdin  io.WriteCloser
-	stdout io.ReadCloser
+	name     string
+	stdin    io.WriteCloser
+	stdout   io.ReadCloser
+	firstRun bool
 }
 
 func (b *Sandbox) executeJob(job *types.LambdaJob) (*types.LambdaResult, error) {
@@ -21,25 +24,42 @@ func (b *Sandbox) executeJob(job *types.LambdaJob) (*types.LambdaResult, error) 
 	if err != nil {
 		panic(err)
 	}
-	b.stdin.Write(bz)
-	// todo: why code commented below not work ?
-	//err = job.EncodeMsg(msgp.NewWriter(b.stdin))
-	//if err != nil {
-	//	return nil, err
-	//}
-	var res types.LambdaResult
-	err = res.DecodeMsg(msgp.NewReader(b.stdout))
+	_, err = b.stdin.Write(bz)
 	if err != nil {
-		return nil, err
+		panic(err)
+	}
+
+	var res types.LambdaResult
+	if runtime.GOOS == "darwin" || !b.firstRun {
+		err = res.DecodeMsg(msgp.NewReader(b.stdout))
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		// linux ego && first run
+		counter := 0
+		sc := bufio.NewScanner(b.stdout)
+		for sc.Scan() {
+			lineBz := sc.Bytes()
+			if counter == 3 {
+				_, err := res.UnmarshalMsg(lineBz)
+				if err != nil {
+					return nil, err
+				}
+				break
+			}
+			counter++
+		}
+		b.firstRun = false
 	}
 	return &res, nil
 }
 
 func NewAndStartSandbox(name string) *Sandbox {
-	cmd := exec.Command("./egvmscript")
-	//if string(out) != "success" {
-	//	panic("new sandbox failed!")
-	//}
+	cmd := exec.Command("ego", "run", "egvmscript")
+	if runtime.GOOS == "darwin" {
+		cmd = exec.Command("./egvmscript")
+	}
 	stdin, err := cmd.StdinPipe()
 	if nil != err {
 		panic("Error obtaining stdin: " + err.Error())
@@ -55,5 +75,5 @@ func NewAndStartSandbox(name string) *Sandbox {
 			panic(err)
 		}
 	}()
-	return &Sandbox{name: name, stdin: stdin, stdout: stdout}
+	return &Sandbox{name: name, stdin: stdin, stdout: stdout, firstRun: true}
 }

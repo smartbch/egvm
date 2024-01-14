@@ -2,13 +2,14 @@ package context
 
 import (
 	"crypto/sha256"
+	"reflect"
+	"runtime"
+	"sort"
+
 	"github.com/dop251/goja"
 	"github.com/edgelesssys/ego/enclave"
 	gethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/tyler-smith/go-bip32"
-	"reflect"
-	"runtime"
-	"sort"
 
 	"github.com/smartbch/egvm/egvm-script/extension"
 	"github.com/smartbch/egvm/egvm-script/types"

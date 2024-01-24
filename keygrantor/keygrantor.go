@@ -9,10 +9,8 @@ import (
 	"fmt"
 	"io"
 	"math/big"
-	"math/rand"
 	"net/http"
 	"os"
-	"runtime"
 	"time"
 
 	ecies "github.com/ecies/go/v2"
@@ -20,6 +18,7 @@ import (
 	"github.com/edgelesssys/ego/attestation/tcbstatus"
 	"github.com/edgelesssys/ego/ecrypto"
 	"github.com/edgelesssys/ego/enclave"
+	"github.com/ethereum/go-ethereum/crypto/secp256k1"
 	"github.com/tyler-smith/go-bip32"
 )
 
@@ -27,15 +26,20 @@ import (
 import "C"
 
 var (
-	ExtPrivKey *bip32.Key
-	ExtPubKey  *bip32.Key
-	PrivKey    *ecies.PrivateKey
+	ErrInDebugMode        = errors.New("Cannot work in debug mode")
+	ErrTCBStatus          = errors.New("TCB is not up-to-date")
+	ErrUniqueIDMismatch   = errors.New("UniqueID Mismatch")
+	ErrSignerIDMismatch   = errors.New("SignerID Mismatch")
+	ErrProductIDMismatch  = errors.New("ProductID Mismatch")
+	ErrReportDataMismatch = errors.New("ReportData Mismatch")
 
-	ErrInDebugMode       = errors.New("Cannot work in debug mode")
-	ErrTCBStatus         = errors.New("TCB is not up-to-date")
-	ErrUniqueIDMismatch  = errors.New("UniqueID Mismatch")
-	ErrSignerIDMismatch  = errors.New("SignerID Mismatch")
-	ErrProductIDMismatch = errors.New("ProductID Mismatch")
+	AttestationProviderURLs = []string{
+		"https://sharedeus2.eus2.attest.azure.net",
+		"https://sharedcus.cus.attest.azure.net",
+		"https://shareduks.uks.attest.azure.net",
+		"https://sharedeus.eus.attest.azure.net",
+		"https://sharedcae.cae.attest.azure.net",
+	}
 )
 
 type GetKeyParams struct {
@@ -43,47 +47,36 @@ type GetKeyParams struct {
 	JWT    string `json:"JWT"`
 }
 
-func generateRandom64Bytes() []byte {
-	var out []byte
+// Use Intel CPU's true random number generator to get random data
+func generateRandomBytes(count int) []byte {
+	out := make([]byte, count)
 	var x C.uint16_t
 	var retry C.int = 1
-	for i := 0; i < 64; i++ {
+	for i := 0; i < count; i++ {
 		C.rdrand16(&x, retry)
-		out = append(out, byte(x))
+		out[i] = byte(x)
 	}
 	return out
 }
 
-func generateRandom32Bytes() []byte {
-	if runtime.GOOS == "darwin" {
-		recv := make([]byte, 32)
-		_, _ = rand.Read(recv)
-		fmt.Println(recv)
-		return recv[:]
-	}
-	var out []byte
-	var x C.uint16_t
-	var retry C.int = 1
-	for i := 0; i < 32; i++ {
-		C.rdrand16(&x, retry)
-		out = append(out, byte(x))
-	}
-	return out
-}
-
+// Use Intel CPU's true random number generator to get an extended private key
+// NewMasterKey may fail if random private key < secp256k1.S256().N (very unlikely), so we need to retry
 func GetRandomExtPrivKey() *bip32.Key {
-	seed := generateRandom64Bytes()
-	key, err := bip32.NewMasterKey(seed)
-	if err != nil {
-		panic(err)
+	for {
+		seed := generateRandomBytes(64)
+		key, err := bip32.NewMasterKey(seed)
+		if err == nil {
+			return key
+		}
 	}
-	return key
+	return nil
 }
 
-func Bip32KeyToEciesKey(key *bip32.Key) *ecies.PrivateKey {
-	return ecies.NewPrivateKeyFromBytes(key.Key)
-}
-
+// Derive from the root key using a 9-depth path. Each level consumes 31 bits.
+// NewChildKey may return non-nil error because validatePrivateKey may fail with a very low
+// possibility. So we must add retry logic at each depth by repeatly increasing 'm'.
+// The bits 8~10/11~13/14~16/17~19/20~22/23~25/26~29/30~32 of lastAdd will be used for record the retry
+// count of depth 0/1/2/3/4/5/6/7. At depth=8, lastAdd will be added to 'm' as extra entropy.
 func DeriveKey(key *bip32.Key, hash [32]byte) *bip32.Key {
 	twoExp31 := big.NewInt(1 << 31)
 	n := big.NewInt(0).SetBytes(hash[:])
@@ -95,10 +88,10 @@ func DeriveKey(key *bip32.Key, hash [32]byte) *bip32.Key {
 		for m := uint32(remainder.Uint64()); true; m++ {
 			//fmt.Printf("i %d m %08x\n", i, m)
 			var err error
-			if i == 8 {
-				key, err = key.NewChildKey(m)
-			} else { //last round
+			if i == 8 { //last round
 				key, err = key.NewChildKey(m + lastAdd)
+			} else {
+				key, err = key.NewChildKey(m)
 			}
 			if err == nil {
 				break
@@ -111,30 +104,8 @@ func DeriveKey(key *bip32.Key, hash [32]byte) *bip32.Key {
 	return key
 }
 
-func NewKeyFromRootKey(rootKey *bip32.Key) *bip32.Key {
-	child, err := rootKey.NewChildKey(0x80000000 + 44) // BIP44
-	if err != nil {
-		panic(err)
-	}
-	child, err = child.NewChildKey(0x80000000) //Bitcoin
-	if err != nil {
-		panic(err)
-	}
-	child, err = child.NewChildKey(0) //account=0
-	if err != nil {
-		panic(err)
-	}
-	child, err = child.NewChildKey(0) //chain=0
-	if err != nil {
-		panic(err)
-	}
-	child, err = child.NewChildKey(0) //address=0
-	if err != nil {
-		panic(err)
-	}
-	return child
-}
-
+// Encrypt the extended private key with a key derived from a measurement of the enclave, and
+// then save the encrypted key to file
 func SealKeyToFile(fname string, extPrivKey *bip32.Key) {
 	bz, err := extPrivKey.Serialize()
 	if err != nil {
@@ -150,12 +121,13 @@ func SealKeyToFile(fname string, extPrivKey *bip32.Key) {
 	}
 }
 
-func RecoverKeysFromFile(fname string) (extPrivKey *bip32.Key, extPubKey *bip32.Key, privKey *ecies.PrivateKey, err error) {
+// Read encrypted key from file and decrypt it
+func RecoverKeyFromFile(fname string) (extPrivKey *bip32.Key, fileExists bool) {
 	fileData, err := os.ReadFile(fname)
 	if err != nil {
 		fmt.Printf("read file failed, %s\n", err.Error())
 		if os.IsNotExist(err) {
-			return nil, nil, nil, err
+			return nil, false
 		}
 		panic(err)
 	}
@@ -169,34 +141,35 @@ func RecoverKeysFromFile(fname string) (extPrivKey *bip32.Key, extPubKey *bip32.
 		fmt.Printf("deserialize xprv failed, %s\n", err.Error())
 		panic(err)
 	}
-	extPubKey = extPrivKey.PublicKey()
-	privKey = Bip32KeyToEciesKey(NewKeyFromRootKey(extPrivKey))
-	return
+	return extPrivKey, true
 }
 
+// Get SelfReport and check it against RemoteReport of the same enclave
 func GetSelfReportAndCheck() attestation.Report {
-	report, err := enclave.GetSelfReport()
+	selfReport, err := enclave.GetSelfReport()
 	if err != nil {
 		panic(err)
 	}
-	if report.Debug {
+	if selfReport.Debug {
 		panic(ErrInDebugMode)
 	}
-	r, err := enclave.GetRemoteReport([]byte{0x01})
+	reportBytes, err := enclave.GetRemoteReport([]byte{0x01})
 	if err != nil {
 		panic(err)
 	}
-	ar, err := enclave.VerifyRemoteReport(r)
+	report, err := enclave.VerifyRemoteReport(reportBytes)
 	if err != nil {
 		panic(err)
 	}
-	if ar.TCBStatus != tcbstatus.UpToDate {
-		panic(ErrTCBStatus)
+	err = VerifyPeerReport(report, selfReport)
+	if err != nil {
+		panic(err)
 	}
-	return report
+	return selfReport
 }
 
-func VerifyPeerReport(report *attestation.Report, selfReport *attestation.Report) error {
+// Verify report against selfReport to ensure they are from the same enclave.
+func VerifyPeerReport(report, selfReport attestation.Report) error {
 	if report.Debug {
 		return ErrInDebugMode
 	}
@@ -215,6 +188,7 @@ func VerifyPeerReport(report *attestation.Report, selfReport *attestation.Report
 	return nil
 }
 
+// Send a http post request using json payload
 func HttpPost(url string, jsonReq []byte) ([]byte, error) {
 	client := http.Client{Timeout: 3 * time.Second}
 	resp, err := client.Post(url, "application/json", bytes.NewReader(jsonReq))
@@ -232,19 +206,49 @@ func HttpPost(url string, jsonReq []byte) ([]byte, error) {
 	return body, nil
 }
 
+// Return true if it's a valid secp256k1 private key
+func IsValidPrivateKey(key []byte) bool {
+	k := big.NewInt(0).SetBytes(key)
+	return len(key) == 32 && k.Sign() != 0 /*not zero*/ && k.Cmp(secp256k1.S256().N) < 0 /*in range*/
+}
+
+// Generate a new eceis.PrivateKey from random data
+func GenerateEciesPrivateKey() *ecies.PrivateKey {
+	for {
+		bz := generateRandomBytes(32)
+		if IsValidPrivateKey(bz) {
+			return ecies.NewPrivateKeyFromBytes(bz)
+		}
+	}
+	return nil
+}
+
+// A downstream peer gets the main xprv key from the upstream peer with clientData equaling all-zero
+// An enclave gets its derived key from the upstream peer with non-zero clientData
 func GetKeyFromKeyGrantor(keyGrantorUrl string, clientData [32]byte) (*bip32.Key, error) {
-	privKey := ecies.NewPrivateKeyFromBytes(generateRandom32Bytes())
+	privKey := GenerateEciesPrivateKey()
 	pubkey := privKey.PublicKey.Bytes(true)
 	pubkeyHash := sha256.Sum256(pubkey)
-	report, err := enclave.GetRemoteReport(append(pubkeyHash[:], clientData[:]...))
+	data := append(pubkeyHash[:], clientData[:]...)
+	report, err := enclave.GetRemoteReport(data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get remote report: %w", err)
 	}
-	token, err := enclave.CreateAzureAttestationToken(pubkey, AttestationProviderURL)
+	var token string
+	for _, url := range AttestationProviderURLs {
+		token, err = enclave.CreateAzureAttestationToken(data, url)
+		if err != nil {
+			break
+		}
+	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to create attestation report: %w", err)
 	}
-	url := fmt.Sprintf("%s/getkey?pubkey=%s", keyGrantorUrl, hex.EncodeToString(pubkey))
+	url := "%s/getkey?pubkey=%s"
+	if big.NewInt(0).SetBytes(clientData[:]).Sign() == 0 { // clientData is all zero
+		url = "%s/xprv?pubkey=%s"
+	}
+	url = fmt.Sprintf(url, keyGrantorUrl, hex.EncodeToString(pubkey))
 	params := GetKeyParams{
 		Report: hex.EncodeToString(report),
 		JWT:    token,
@@ -275,25 +279,13 @@ func GetKeyFromKeyGrantor(keyGrantorUrl string, clientData [32]byte) (*bip32.Key
 	return outKey, nil
 }
 
-const AttestationProviderURL = "https://shareduks.uks.attest.azure.net"
-
-func VerifyJWT(token string, report attestation.Report) error {
-	tokenReport, err := attestation.VerifyAzureAttestationToken(token, AttestationProviderURL)
-	if err != nil {
-		return err
+// Verify JWT and ensures it's from the same enclave that generates 'report'
+func VerifyJWT(token string, report attestation.Report) (err error) {
+	for _, url := range AttestationProviderURLs {
+		tokenReport, err := attestation.VerifyAzureAttestationToken(token, url)
+		if err != nil {
+			return VerifyPeerReport(tokenReport, report)
+		}
 	}
-	return checkJWTAgainstReport(tokenReport, report)
-}
-
-func checkJWTAgainstReport(token attestation.Report, report attestation.Report) error {
-	if !bytes.Equal(token.UniqueID, report.UniqueID) {
-		return ErrUniqueIDMismatch
-	}
-	if !bytes.Equal(token.SignerID, report.SignerID) {
-		return ErrSignerIDMismatch
-	}
-	if !bytes.Equal(token.ProductID, report.ProductID) {
-		return ErrProductIDMismatch
-	}
-	return nil
+	return
 }

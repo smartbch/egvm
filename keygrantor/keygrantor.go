@@ -69,7 +69,6 @@ func GetRandomExtPrivKey() *bip32.Key {
 			return key
 		}
 	}
-	return nil
 }
 
 // Derive from the root key using a 9-depth path. Each level consumes 31 bits.
@@ -220,7 +219,6 @@ func GenerateEciesPrivateKey() *ecies.PrivateKey {
 			return ecies.NewPrivateKeyFromBytes(bz)
 		}
 	}
-	return nil
 }
 
 // A downstream peer gets the main xprv key from the upstream peer with clientData equaling all-zero

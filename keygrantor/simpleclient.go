@@ -53,7 +53,7 @@ func (rr RandReader) Read(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
-func createCertificate(serverName string) ([]byte, crypto.PrivateKey, tls.Config) {
+func createCertificate(serverName string) ([]byte, crypto.PrivateKey, *tls.Config) {
 	template := &x509.Certificate{
 		SerialNumber: &big.Int{},
 		Subject:      pkix.Name{CommonName: serverName},
@@ -63,7 +63,7 @@ func createCertificate(serverName string) ([]byte, crypto.PrivateKey, tls.Config
 	randReader := RandReader{}
 	priv, _ := rsa.GenerateKey(randReader, 2048)
 	cert, _ := x509.CreateCertificate(randReader, template, template, &priv.PublicKey, priv)
-	tlsCfg := tls.Config{
+	tlsCfg := &tls.Config{
 		Certificates: []tls.Certificate{
 			{
 				Certificate: [][]byte{cert},
@@ -124,7 +124,7 @@ func (sc *SimpleClient) CreateAndStartHttpsServer(serverName, listenURL string, 
 		http.HandleFunc(name, handler)
 	}
 
-	server := http.Server{Addr: listenURL, TLSConfig: &tlsCfg, ReadTimeout: 3 * time.Second, WriteTimeout: 5 * time.Second}
+	server := http.Server{Addr: listenURL, TLSConfig: tlsCfg, ReadTimeout: 3 * time.Second, WriteTimeout: 5 * time.Second}
 	fmt.Println("listening ...")
 	err := server.ListenAndServeTLS("", "")
 	fmt.Println(err)

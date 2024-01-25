@@ -237,7 +237,7 @@ func GetKeyFromKeyGrantor(keyGrantorUrl string, clientData [32]byte) (*bip32.Key
 	var token string
 	for _, url := range AttestationProviderURLs {
 		token, err = enclave.CreateAzureAttestationToken(data, url)
-		if err != nil {
+		if err == nil {
 			break
 		}
 	}
@@ -283,7 +283,7 @@ func GetKeyFromKeyGrantor(keyGrantorUrl string, clientData [32]byte) (*bip32.Key
 func VerifyJWT(token string, report attestation.Report) (err error) {
 	for _, url := range AttestationProviderURLs {
 		tokenReport, err := attestation.VerifyAzureAttestationToken(token, url)
-		if err != nil {
+		if err == nil {
 			return VerifyPeerReport(tokenReport, report)
 		}
 	}

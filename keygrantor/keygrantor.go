@@ -48,7 +48,7 @@ type GetKeyParams struct {
 }
 
 // Use Intel CPU's true random number generator to get random data
-func generateRandomBytes(count int) []byte {
+func GenerateRandomBytes(count int) []byte {
 	out := make([]byte, count)
 	var x C.uint16_t
 	var retry C.int = 1
@@ -63,7 +63,7 @@ func generateRandomBytes(count int) []byte {
 // NewMasterKey may fail if random private key < secp256k1.S256().N (very unlikely), so we need to retry
 func GetRandomExtPrivKey() *bip32.Key {
 	for {
-		seed := generateRandomBytes(64)
+		seed := GenerateRandomBytes(64)
 		key, err := bip32.NewMasterKey(seed)
 		if err == nil {
 			return key
@@ -215,7 +215,7 @@ func IsValidPrivateKey(key []byte) bool {
 // Generate a new eceis.PrivateKey from random data
 func GenerateEciesPrivateKey() *ecies.PrivateKey {
 	for {
-		bz := generateRandomBytes(32)
+		bz := GenerateRandomBytes(32)
 		if IsValidPrivateKey(bz) {
 			return ecies.NewPrivateKeyFromBytes(bz)
 		}

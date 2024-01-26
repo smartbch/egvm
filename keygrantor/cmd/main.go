@@ -25,7 +25,6 @@ var (
 	ExtPubKey  *bip32.Key
 
 	KeyFile = "/data/key.txt"
-	Zero32  = [32]byte{}
 )
 
 func main() {
@@ -39,7 +38,7 @@ func main() {
 			ExtPrivKey = keygrantor.GetRandomExtPrivKey()
 		} else {
 			var err error
-			ExtPrivKey, err = keygrantor.GetKeyFromKeyGrantor(*keySrc, Zero32)
+			ExtPrivKey, err = keygrantor.GetKeyFromKeyGrantor(*keySrc, nil)
 			if err != nil {
 				panic(err)
 			}
@@ -78,16 +77,6 @@ func createAndStartHttpServer(listenAddr string) {
 		}
 		report := handleGetKeyParam(w, r, pubkeyBz)
 		if report == nil {
-			return
-		}
-		if len(report.Data) != 64 {
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte("report data must 64bytes long"))
-			return
-		}
-		if !bytes.Equal(Zero32[:], report.Data[32:]) {
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte("non-zero clientData"))
 			return
 		}
 		selfReport := keygrantor.GetSelfReportAndCheck()

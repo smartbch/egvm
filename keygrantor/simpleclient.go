@@ -34,7 +34,7 @@ func (sc *SimpleClient) InitKeys(keySrc string, clientData [32]byte, loadFromFil
 		}
 	} else {
 		var err error
-		sc.ExtPrivKey, err = GetKeyFromKeyGrantor(keySrc, clientData)
+		sc.ExtPrivKey, err = GetKeyFromKeyGrantor(keySrc, clientData[:])
 		if err != nil {
 			panic(err)
 		}

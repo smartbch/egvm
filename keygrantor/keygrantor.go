@@ -221,9 +221,9 @@ func GenerateEciesPrivateKey() *ecies.PrivateKey {
 	}
 }
 
-// A downstream peer gets the main xprv key from the upstream peer with clientData equaling all-zero
-// An enclave gets its derived key from the upstream peer with non-zero clientData
-func GetKeyFromKeyGrantor(keyGrantorUrl string, clientData [32]byte) (*bip32.Key, error) {
+// A downstream peer gets the main xprv key from the upstream peer with empty clientDatazero
+// An enclave gets its derived key from the upstream peer with non-empty clientData
+func GetKeyFromKeyGrantor(keyGrantorUrl string, clientData []byte) (*bip32.Key, error) {
 	privKey := GenerateEciesPrivateKey()
 	pubkey := privKey.PublicKey.Bytes(true)
 	pubkeyHash := sha256.Sum256(pubkey)
@@ -243,7 +243,7 @@ func GetKeyFromKeyGrantor(keyGrantorUrl string, clientData [32]byte) (*bip32.Key
 		return nil, fmt.Errorf("failed to create attestation report: %w", err)
 	}
 	url := "%s/getkey?pubkey=%s"
-	if big.NewInt(0).SetBytes(clientData[:]).Sign() == 0 { // clientData is all zero
+	if len(clientData) == 0 { // clientData is all zero
 		url = "%s/xprv?pubkey=%s"
 	}
 	url = fmt.Sprintf(url, keyGrantorUrl, hex.EncodeToString(pubkey))

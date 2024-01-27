@@ -23,8 +23,6 @@ import (
 var (
 	ExtPrivKey *bip32.Key
 	ExtPubKey  *bip32.Key
-	PrivKey    *ecies.PrivateKey
-	SelfReport attestation.Report
 
 	KeyFile = "/data/key.txt"
 )
@@ -33,72 +31,33 @@ func main() {
 	keySrc := flag.String("xprvsrc", "", "the server from which we can sync xprv key")
 	listenAddrP := flag.String("listen", "0.0.0.0:8084", "listen address")
 	flag.Parse()
-	var err error
-	ExtPrivKey, ExtPubKey, PrivKey, err = keygrantor.RecoverKeysFromFile(KeyFile)
-	if err != nil {
-		ExtPrivKey = keygrantor.GetRandomExtPrivKey()
-		ExtPubKey = ExtPrivKey.PublicKey()
-		PrivKey = keygrantor.Bip32KeyToEciesKey(keygrantor.NewKeyFromRootKey(ExtPrivKey))
-		fetchXprv(keySrc)
+	var fileExists bool
+	ExtPrivKey, fileExists = keygrantor.RecoverKeyFromFile(KeyFile)
+	if !fileExists {
+		if keySrc == nil || len(*keySrc) == 0 {
+			ExtPrivKey = keygrantor.GetRandomExtPrivKey()
+		} else {
+			var err error
+			ExtPrivKey, err = keygrantor.GetKeyFromKeyGrantor(*keySrc, nil)
+			if err != nil {
+				panic(err)
+			}
+		}
+		keygrantor.SealKeyToFile(KeyFile, ExtPrivKey)
 	}
-	SelfReport = keygrantor.GetSelfReportAndCheck()
+	ExtPubKey = ExtPrivKey.PublicKey()
 	listenAddr := *listenAddrP
 	go createAndStartHttpServer(listenAddr)
 	select {}
 }
 
-func fetchXprv(keySrc *string) {
-	if keySrc == nil || len(*keySrc) == 0 {
-		keygrantor.SealKeyToFile(KeyFile, ExtPrivKey)
-		return
-	}
-	data := PrivKey.PublicKey.Bytes(true)
-	hash := sha256.Sum256(data)
-	reportBz, err := enclave.GetRemoteReport(hash[:])
-	if err != nil {
-		fmt.Println("failed to get report attestation report")
-		panic(err)
-	}
-	token, err := enclave.CreateAzureAttestationToken(data, keygrantor.AttestationProviderURL)
-	if err != nil {
-		panic(err)
-	}
-	url := fmt.Sprintf("%s/xprv?pubkey=%s", *keySrc, hex.EncodeToString(data))
-	params := keygrantor.GetKeyParams{
-		Report: hex.EncodeToString(reportBz),
-		JWT:    token,
-	}
-	jsonReq, err := json.Marshal(params)
-	if err != nil {
-		panic(err)
-	}
-	encryptedKey, err := keygrantor.HttpPost(url, jsonReq)
-	if err != nil {
-		panic(err)
-	}
-	resBz, err := hex.DecodeString(string(encryptedKey))
-	if err != nil {
-		panic(err)
-	}
-	keyBz, err := ecies.Decrypt(PrivKey, resBz)
-	if err != nil {
-		fmt.Println("failed to decrypt message from server")
-		panic(err)
-	}
-	ExtPrivKey, err = bip32.Deserialize(keyBz)
-	if err != nil {
-		fmt.Println("failed to deserialize the key from server")
-		panic(err)
-	}
-	ExtPubKey = ExtPrivKey.PublicKey()
-	keygrantor.SealKeyToFile(KeyFile, ExtPrivKey)
-}
-
 func createAndStartHttpServer(listenAddr string) {
+	// Return the extended public key
 	http.HandleFunc("/xpub", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(ExtPubKey.B58Serialize()))
 	})
 
+	// Get remote attestion report to endorse the extended public key
 	http.HandleFunc("/report", func(w http.ResponseWriter, r *http.Request) {
 		hash := sha256.Sum256([]byte(ExtPubKey.B58Serialize()))
 		report, err := enclave.GetRemoteReport(hash[:])
@@ -110,7 +69,7 @@ func createAndStartHttpServer(listenAddr string) {
 		w.Write([]byte(hex.EncodeToString(report)))
 	})
 
-	// For peer keygrantors to get ExtPrivKey
+	// Peer keygrantors get ExtPrivKey through '/xprv'
 	http.HandleFunc("/xprv", func(w http.ResponseWriter, r *http.Request) {
 		pubKey, pubkeyBz := handleRequesterPubkey(w, r)
 		if pubKey == nil {
@@ -120,7 +79,8 @@ func createAndStartHttpServer(listenAddr string) {
 		if report == nil {
 			return
 		}
-		err := keygrantor.VerifyPeerReport(report, &SelfReport)
+		selfReport := keygrantor.GetSelfReportAndCheck()
+		err := keygrantor.VerifyPeerReport(*report, selfReport)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			w.Write([]byte("report check failed: " + err.Error()))
@@ -154,11 +114,12 @@ func createAndStartHttpServer(listenAddr string) {
 	log.Fatal(server.ListenAndServe())
 }
 
+// Parse query parameter 'pubkey' to get ecies.PublicKey for encrypting the returned key
 func handleRequesterPubkey(w http.ResponseWriter, r *http.Request) (*ecies.PublicKey, []byte) {
 	pubkeys := r.URL.Query()["pubkey"]
 	if len(pubkeys) == 0 || len(pubkeys[0]) == 0 {
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("miss jwt token parameter"))
+		w.Write([]byte("missing pubkey parameter"))
 		return nil, nil
 	}
 	requesterPubkeyBz, err := hex.DecodeString(pubkeys[0])
@@ -176,6 +137,7 @@ func handleRequesterPubkey(w http.ResponseWriter, r *http.Request) (*ecies.Publi
 	return requesterPubKey, requesterPubkeyBz
 }
 
+// Decode GetKeyParams from http requet's body and then check the attestion report and the JWT
 func handleGetKeyParam(w http.ResponseWriter, r *http.Request, pubkeyBz []byte) *attestation.Report {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -213,7 +175,6 @@ func handleGetKeyParam(w http.ResponseWriter, r *http.Request, pubkeyBz []byte) 
 		w.Write([]byte("pubkey not match the pubkey hash"))
 		return nil
 	}
-	fmt.Printf("report pubkey: %s\n", hex.EncodeToString(report.Data[:33]))
 	err = keygrantor.VerifyJWT(params.JWT, report)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -223,8 +184,9 @@ func handleGetKeyParam(w http.ResponseWriter, r *http.Request, pubkeyBz []byte) 
 	return &report
 }
 
+// Derive a xprv key from ExtPrivKey and the requestor's UniqueID and clientData
 func handleKeyDerive(w http.ResponseWriter, report *attestation.Report, requesterPubKey *ecies.PublicKey) {
-	// concat uniqueid and client specific data, then hash it for more flexible key deriving
+	// concat uniqueid and client-specific data, then hash it for more flexible key deriving
 	derivedKey := keygrantor.DeriveKey(ExtPrivKey, sha256.Sum256(append(report.UniqueID, report.Data[32:]...)))
 	derivedKeyBz, _ := derivedKey.Serialize()
 	bz, err := ecies.Encrypt(requesterPubKey, derivedKeyBz)

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/tyler-smith/go-bip32"
 	"github.com/stretchr/testify/require"
+	"github.com/tyler-smith/go-bip32"
 )
 
 func TestDeriveKey(t *testing.T) {

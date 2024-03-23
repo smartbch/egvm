@@ -3,8 +3,8 @@ package keygrantor
 import (
 	"crypto"
 	"crypto/rsa"
-	"crypto/tls"
 	"crypto/sha256"
+	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/hex"
@@ -30,7 +30,7 @@ func (sc *SimpleClient) InitKeys(keySrc string, clientData [32]byte, loadFromFil
 		fileExists := false
 		sc.ExtPrivKey, fileExists = RecoverKeyFromFile(keySrc)
 		if !fileExists {
-			panic("Cannot find key file: "+ keySrc)
+			panic("Cannot find key file: " + keySrc)
 		}
 	} else {
 		var err error
@@ -84,11 +84,11 @@ func (sc *SimpleClient) CreateAndStartHttpsServer(serverName, listenURL string, 
 
 	// init handler for remote attestation
 	http.HandleFunc("/cert", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(hex.EncodeToString(cert))) 
+		w.Write([]byte(hex.EncodeToString(cert)))
 	})
 	// look up secp256k1 pubkey
 	http.HandleFunc("/pubkey", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(hex.EncodeToString(pubKeyHash[:])))
+		w.Write([]byte(hex.EncodeToString(sc.PubKeyBz)))
 		return
 	})
 
@@ -129,4 +129,3 @@ func (sc *SimpleClient) CreateAndStartHttpsServer(serverName, listenURL string, 
 	err := server.ListenAndServeTLS("", "")
 	fmt.Println(err)
 }
-
